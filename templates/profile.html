@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}@{{ target_username }} — ConnectSphere{% endblock %}
+
+{% block content %}
+<div class="app-container single-column" id="profile-content">
+    <!-- Profile Header Card -->
+    <div class="profile-card">
+        <div class="profile-banner"></div>
+        <div class="profile-main-info">
+            <div class="profile-avatar-row">
+                <div id="profile-avatar-wrap">
+                    <div class="profile-large-avatar">?</div>
+                </div>
+                <div id="profile-action-container">
+                    <!-- Injected dynamically: Follow/Unfollow or Edit Profile -->
+                </div>
+            </div>
+
+            <h1 class="profile-name" id="profile-display-name">{{ target_username }}</h1>
+            <div class="profile-username" id="profile-username-tag">@{{ target_username }}</div>
+            <p class="profile-bio" id="profile-bio-text">Loading bio...</p>
+
+            <div class="profile-meta-stats">
+                <div class="profile-stat">
+                    <span class="profile-stat-number" id="profile-posts-count">0</span>
+                    <span class="profile-stat-text">Posts</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-number" id="profile-followers-count">0</span>
+                    <span class="profile-stat-text">Followers</span>
+                </div>
+                <div class="profile-stat">
+                    <span class="profile-stat-number" id="profile-following-count">0</span>
+                    <span class="profile-stat-text">Following</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Posts Timeline Section -->
+    <div style="margin-bottom: 1rem;">
+        <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem;">
+            Posts by @{{ target_username }}
+        </h2>
+        <div class="post-list" id="profile-posts-list">
+            <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <div class="empty-title">Loading posts...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-overlay" id="edit-profile-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Your Profile</h2>
+            <button class="modal-close" onclick="closeEditProfileModal()">&times;</button>
+        </div>
+
+        <div class="form-group" style="align-items: center; margin-bottom: 1.5rem;">
+            <img id="edit-avatar-preview" src="" alt="Avatar Preview" class="profile-large-avatar" style="width: 84px; height: 84px; display: none; margin-bottom: 0.75rem;">
+            <label for="edit-avatar-input" class="btn btn-outline btn-sm">
+                Change Profile Picture
+            </label>
+            <input type="file" id="edit-avatar-input" accept="image/*" style="display: none;">
+        </div>
+
+        <div class="form-group">
+            <label for="edit-bio-input" class="form-label">Bio</label>
+            <textarea id="edit-bio-input" class="form-textarea" placeholder="Tell the sphere about yourself..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1.25rem;">
+            <button class="btn btn-outline btn-sm" onclick="closeEditProfileModal()">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="save-profile-btn" onclick="saveProfileChanges()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Post Modal -->
+<div class="modal-overlay" id="edit-post-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Post</h2>
+            <button class="modal-close" onclick="closeEditPostModal()">&times;</button>
+        </div>
+        <div class="form-group">
+            <textarea id="edit-post-text" class="form-textarea" rows="4"></textarea>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.65rem; margin-top: 1rem;">
+            <button class="btn btn-outline btn-sm" onclick="closeEditPostModal()">Cancel</button>
+            <button class="btn btn-primary btn-sm" id="save-edit-post-btn" onclick="saveEditedPost()">Save Changes</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.TARGET_USERNAME = "{{ target_username }}";
+</script>
+<script src="{% static 'js/profile.js' %}"></script>
+{% endblock %}

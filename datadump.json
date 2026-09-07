@@ -1,0 +1,727 @@
+[
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$yQfTPgfRyUb3a9iN1iLoCM$G4D+1grEp0UNhh/IcCt0uNCc91FtXxgCOL9PKo4syLw=",
+    "last_login": null,
+    "is_superuser": true,
+    "username": "admin",
+    "first_name": "",
+    "last_name": "",
+    "email": "admin@connectsphere.io",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-09-07T04:49:59.820Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$ZLFG2HgBaBxUSySaTwbLJ9$v5QSAOqc24zar0Ia5rnChvif8cIMRUX4wBsQ2Hr8VCY=",
+    "last_login": "2026-09-07T05:06:20.464Z",
+    "is_superuser": false,
+    "username": "alice",
+    "first_name": "",
+    "last_name": "",
+    "email": "alice@connectsphere.io",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T04:50:00.281Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$fvfXhc4i3jGRiLJEmeHXJ8$UY72swKFAYgPRAia2mOXSU65+agAOv+rgwfiQ6PFAbY=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "bob",
+    "first_name": "",
+    "last_name": "",
+    "email": "bob@connectsphere.io",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T04:50:00.781Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$rqu5weeR5NRUXiiJcsAmHc$ee7lKmEsClvD7h+abcA6E5T+BLNocU48GtrwDEqUKdI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "charlie",
+    "first_name": "",
+    "last_name": "",
+    "email": "charlie@connectsphere.io",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T04:50:01.243Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$uTVR2kCOB440ADHW72p9VH$Mj2AkJtLROzxrhrKQsytitrXE2WKnH1D7xSYtCHD2kk=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "diana",
+    "first_name": "",
+    "last_name": "",
+    "email": "diana@connectsphere.io",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T04:50:01.705Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$hDULa2v3SQfguMrjkIFi9f$muxMJ+r+qCc/WvfOYw6f5SKuxB8DyngBee9RijtgdVY=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "edward",
+    "first_name": "",
+    "last_name": "",
+    "email": "edward@connectsphere.io",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T04:50:02.162Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$KTIxipIkX3i7poQQviTnAR$vPBBFP4piBo11sGg5ld+EbRM67Ni5GImnsaj9hPdWO0=",
+    "last_login": "2026-09-07T05:05:08.700Z",
+    "is_superuser": false,
+    "username": "e2e_tester",
+    "first_name": "",
+    "last_name": "",
+    "email": "e2e_tester@example.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T05:04:54.461Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$VNrwOz9edwt2i229p8AdC4$wJLpOd39SBzn8dmCgVp2We7lzArSc7aKAYu759I9I08=",
+    "last_login": "2026-09-07T05:20:44.678Z",
+    "is_superuser": false,
+    "username": "Karthik",
+    "first_name": "",
+    "last_name": "",
+    "email": "hg8887205@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-07T05:20:44.080Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "28dw8kjsqelqv5hn4xtjmreo4mdbi04s",
+  "fields": {
+    "session_data": ".eJxVjMsOwiAQRf-FtSFiy2Ncuu83kAFmpGogKe3K-O-WpAvdnnPufQuP25r91mjxcxJXYcXplwWMTypdpAeWe5WxlnWZg-yJPGyTU030uh3t30HGlve1sklTotGhsQQaQBuDgzMhqgg7NkNyGHRQaoCRgRRfGCNzT5n0WXy-6XU4Ow:1x3RXL:mx_Qd4IpuAA3yAFoSCiZQAFPxJZwcfiLm33jMaq_C5E",
+    "expire_date": "2026-09-21T05:04:55.117Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "b42szl6onx275vs8u0iibiakdixiopde",
+  "fields": {
+    "session_data": ".eJxVjEEOwiAQRe_C2hCYkra4dO8ZyMwwSNVAUtpV491tky50-997f1MB1yWHtckcpqiuCtTldyPkl5QDxCeWR9VcyzJPpA9Fn7Tpe43yvp3u30HGlvdawHiDhp2jhGNyAGwRLKJAJ2R8F9mI7UXIU9w9smzIxUQoYz_AoD5fA445Hg:1x3RYi:l5ac0R4Zeaoe99zS5cbNeUv46dpnntod5hU1L1dBpqo",
+    "expire_date": "2026-09-21T05:06:20.483Z"
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "fgq4nh5quthpu3vpqpo6rbrx5bs2is56",
+  "fields": {
+    "session_data": ".eJxVjEEOwiAQRe_C2hCYUmBcuu8ZCDCjVA0kpV0Z765NutDtf-_9lwhxW0vYOi9hJnEWXpx-txTzg-sO6B7rrcnc6rrMSe6KPGiXUyN-Xg7376DEXr41mgR6VB6iJRwUoNeDMwnZKnaGyZDWYJUDC0yoI4yAOVse3NWB9iTeH6trNo0:1x3Rme:By1GdE3LW1kK1eJ2fqOulEabv_8qxR0F17GlxXNNils",
+    "expire_date": "2026-09-21T05:20:44.697Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "admin"
+    ],
+    "bio": "",
+    "profile_picture": "",
+    "date_joined": "2026-09-07T04:49:59.822Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "alice"
+    ],
+    "bio": "Lead Full-Stack Architect & Open Source enthusiast. Building modern reactive systems.",
+    "profile_picture": "profiles/alice_avatar.png",
+    "date_joined": "2026-09-07T04:50:00.282Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "bob"
+    ],
+    "bio": "UI/UX Designer crafting sleek dark-mode experiences, motion graphics & typography.",
+    "profile_picture": "profiles/bob_avatar.png",
+    "date_joined": "2026-09-07T04:50:00.782Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 4,
+  "fields": {
+    "user": [
+      "charlie"
+    ],
+    "bio": "AI Researcher & Pythonista. Curious about neural networks and generative modeling.",
+    "profile_picture": "profiles/charlie_avatar.png",
+    "date_joined": "2026-09-07T04:50:01.244Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 5,
+  "fields": {
+    "user": [
+      "diana"
+    ],
+    "bio": "Cloud DevOps Engineer & Cloud-native architect. Kubernetes, Docker & CI/CD pipeline automation.",
+    "profile_picture": "profiles/diana_avatar.png",
+    "date_joined": "2026-09-07T04:50:01.707Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 6,
+  "fields": {
+    "user": [
+      "edward"
+    ],
+    "bio": "Mobile engineer & tech blogger. Passionate about cross-platform frameworks and accessibility.",
+    "profile_picture": "profiles/edward_avatar.png",
+    "date_joined": "2026-09-07T04:50:02.163Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 7,
+  "fields": {
+    "user": [
+      "e2e_tester"
+    ],
+    "bio": "Automated E2E testing bio",
+    "profile_picture": "",
+    "date_joined": "2026-09-07T05:04:54.899Z"
+  }
+},
+{
+  "model": "core.profile",
+  "pk": 8,
+  "fields": {
+    "user": [
+      "Karthik"
+    ],
+    "bio": "",
+    "profile_picture": "",
+    "date_joined": "2026-09-07T05:20:44.658Z"
+  }
+},
+{
+  "model": "core.post",
+  "pk": 1,
+  "fields": {
+    "author": [
+      "alice"
+    ],
+    "content": "Welcome to ConnectSphere! 🚀 Built completely from scratch with Python, Django REST Framework, and clean modern JavaScript. Loving this responsive interface!",
+    "image": "posts/post_1.png",
+    "created_at": "2026-09-07T04:50:02.720Z",
+    "likes": [
+      [
+        "bob"
+      ],
+      [
+        "charlie"
+      ],
+      [
+        "diana"
+      ],
+      [
+        "edward"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.post",
+  "pk": 2,
+  "fields": {
+    "author": [
+      "alice"
+    ],
+    "content": "Just finished refactoring the database queries with select_related and prefetch_related. Loading feeds with zero redundant N+1 queries feels magical.",
+    "image": "",
+    "created_at": "2026-09-07T04:50:02.740Z",
+    "likes": [
+      [
+        "charlie"
+      ],
+      [
+        "diana"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.post",
+  "pk": 3,
+  "fields": {
+    "author": [
+      "bob"
+    ],
+    "content": "Aesthetics matter! A dark theme with glassmorphic cards and subtle gradients gives users that sleek, modern feeling without sacrificing usability or performance.",
+    "image": "posts/post_3.png",
+    "created_at": "2026-09-07T04:50:02.748Z",
+    "likes": [
+      [
+        "alice"
+      ],
+      [
+        "charlie"
+      ],
+      [
+        "edward"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.post",
+  "pk": 4,
+  "fields": {
+    "author": [
+      "bob"
+    ],
+    "content": "What's everyone's favorite CSS feature in recent years? CSS Grid and subgrid have fundamentally changed how I organize component layouts.",
+    "image": "",
+    "created_at": "2026-09-07T04:50:02.766Z",
+    "likes": []
+  }
+},
+{
+  "model": "core.post",
+  "pk": 5,
+  "fields": {
+    "author": [
+      "charlie"
+    ],
+    "content": "Deep learning models are scaling at breakneck speed, but simple algorithmic foundations and clean architectures still determine real-world performance.",
+    "image": "posts/post_5.png",
+    "created_at": "2026-09-07T04:50:02.774Z",
+    "likes": [
+      [
+        "alice"
+      ],
+      [
+        "diana"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.post",
+  "pk": 6,
+  "fields": {
+    "author": [
+      "charlie"
+    ],
+    "content": "Tested out the new REST endpoints here on ConnectSphere. Clean JSON responses with complete error validation makes consuming APIs so effortless.",
+    "image": "",
+    "created_at": "2026-09-07T04:50:02.792Z",
+    "likes": []
+  }
+},
+{
+  "model": "core.post",
+  "pk": 7,
+  "fields": {
+    "author": [
+      "diana"
+    ],
+    "content": "Deployment tip: Always containerize with lightweight multi-stage builds. Minimized images keep CI/CD build times sub-minute and production rock solid.",
+    "image": "posts/post_7.png",
+    "created_at": "2026-09-07T04:50:02.800Z",
+    "likes": [
+      [
+        "alice"
+      ],
+      [
+        "bob"
+      ],
+      [
+        "charlie"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.post",
+  "pk": 8,
+  "fields": {
+    "author": [
+      "diana"
+    ],
+    "content": "Monitoring latency across services today. Having standardized health checks and structured logs makes diagnosing bottlenecks 10x faster.",
+    "image": "",
+    "created_at": "2026-09-07T04:50:02.818Z",
+    "likes": []
+  }
+},
+{
+  "model": "core.post",
+  "pk": 9,
+  "fields": {
+    "author": [
+      "edward"
+    ],
+    "content": "Interactive UI without hefty frontend frameworks is surprisingly refreshing. Vanilla JS async/await with native fetch keeps bundles ultra lightweight!",
+    "image": "posts/post_9.png",
+    "created_at": "2026-09-07T04:50:02.827Z",
+    "likes": [
+      [
+        "alice"
+      ],
+      [
+        "bob"
+      ],
+      [
+        "diana"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.post",
+  "pk": 10,
+  "fields": {
+    "author": [
+      "edward"
+    ],
+    "content": "Testing the like and comment interactions right now! Instant feedback without page reload makes the feed feel super snappy.",
+    "image": "",
+    "created_at": "2026-09-07T04:50:02.845Z",
+    "likes": []
+  }
+},
+{
+  "model": "core.post",
+  "pk": 11,
+  "fields": {
+    "author": [
+      "alice"
+    ],
+    "content": "Shoutout to everyone sharing their knowledge here on ConnectSphere. Let's keep building great software together! ✨",
+    "image": "",
+    "created_at": "2026-09-07T04:50:02.853Z",
+    "likes": []
+  }
+},
+{
+  "model": "core.post",
+  "pk": 13,
+  "fields": {
+    "author": [
+      "alice"
+    ],
+    "content": "Testing ConnectSphere live in browser!",
+    "image": "",
+    "created_at": "2026-09-07T05:07:07.771Z",
+    "likes": [
+      [
+        "alice"
+      ]
+    ]
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 1,
+  "fields": {
+    "post": 1,
+    "author": [
+      "bob"
+    ],
+    "text": "Incredible work Alice! The interface is so smooth.",
+    "created_at": "2026-09-07T04:50:02.861Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 2,
+  "fields": {
+    "post": 1,
+    "author": [
+      "charlie"
+    ],
+    "text": "Loving the speed of this platform!",
+    "created_at": "2026-09-07T04:50:02.869Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 3,
+  "fields": {
+    "post": 2,
+    "author": [
+      "diana"
+    ],
+    "text": "Pre-fetching queries is a game changer for scale!",
+    "created_at": "2026-09-07T04:50:02.877Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 4,
+  "fields": {
+    "post": 3,
+    "author": [
+      "alice"
+    ],
+    "text": "Totally agree Bob! Dark mode + glassmorphism looks stunning.",
+    "created_at": "2026-09-07T04:50:02.885Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 5,
+  "fields": {
+    "post": 3,
+    "author": [
+      "edward"
+    ],
+    "text": "The contrast and typography here are top-notch.",
+    "created_at": "2026-09-07T04:50:02.895Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 6,
+  "fields": {
+    "post": 5,
+    "author": [
+      "alice"
+    ],
+    "text": "Exciting times in AI research!",
+    "created_at": "2026-09-07T04:50:02.903Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 7,
+  "fields": {
+    "post": 7,
+    "author": [
+      "charlie"
+    ],
+    "text": "Multi-stage Docker builds save so much bandwidth.",
+    "created_at": "2026-09-07T04:50:02.912Z"
+  }
+},
+{
+  "model": "core.comment",
+  "pk": 8,
+  "fields": {
+    "post": 9,
+    "author": [
+      "bob"
+    ],
+    "text": "Vanilla JS is definitely underrated! Fast and no bundle bloat.",
+    "created_at": "2026-09-07T04:50:02.925Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 1,
+  "fields": {
+    "follower": [
+      "alice"
+    ],
+    "following": [
+      "bob"
+    ],
+    "created_at": "2026-09-07T04:50:02.634Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 2,
+  "fields": {
+    "follower": [
+      "alice"
+    ],
+    "following": [
+      "charlie"
+    ],
+    "created_at": "2026-09-07T04:50:02.641Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 3,
+  "fields": {
+    "follower": [
+      "bob"
+    ],
+    "following": [
+      "alice"
+    ],
+    "created_at": "2026-09-07T04:50:02.649Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 4,
+  "fields": {
+    "follower": [
+      "bob"
+    ],
+    "following": [
+      "diana"
+    ],
+    "created_at": "2026-09-07T04:50:02.657Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 5,
+  "fields": {
+    "follower": [
+      "charlie"
+    ],
+    "following": [
+      "alice"
+    ],
+    "created_at": "2026-09-07T04:50:02.664Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 6,
+  "fields": {
+    "follower": [
+      "charlie"
+    ],
+    "following": [
+      "edward"
+    ],
+    "created_at": "2026-09-07T04:50:02.672Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 7,
+  "fields": {
+    "follower": [
+      "diana"
+    ],
+    "following": [
+      "alice"
+    ],
+    "created_at": "2026-09-07T04:50:02.680Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 8,
+  "fields": {
+    "follower": [
+      "diana"
+    ],
+    "following": [
+      "bob"
+    ],
+    "created_at": "2026-09-07T04:50:02.688Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 9,
+  "fields": {
+    "follower": [
+      "diana"
+    ],
+    "following": [
+      "charlie"
+    ],
+    "created_at": "2026-09-07T04:50:02.696Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 10,
+  "fields": {
+    "follower": [
+      "edward"
+    ],
+    "following": [
+      "alice"
+    ],
+    "created_at": "2026-09-07T04:50:02.704Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 11,
+  "fields": {
+    "follower": [
+      "edward"
+    ],
+    "following": [
+      "bob"
+    ],
+    "created_at": "2026-09-07T04:50:02.712Z"
+  }
+},
+{
+  "model": "core.follow",
+  "pk": 12,
+  "fields": {
+    "follower": [
+      "e2e_tester"
+    ],
+    "following": [
+      "alice"
+    ],
+    "created_at": "2026-09-07T05:05:08.815Z"
+  }
+}
+]

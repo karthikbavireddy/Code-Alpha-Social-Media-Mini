@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Explore People — ConnectSphere{% endblock %}
+
+{% block content %}
+<div class="app-container single-column">
+    <div class="search-header">
+        <h1 style="font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">
+            Explore ConnectSphere
+        </h1>
+        <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Discover active community members, colleagues, and creators.
+        </p>
+
+        <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="explore-search-input" class="search-input" placeholder="Search members by username..." autofocus>
+        </div>
+    </div>
+
+    <!-- Dynamic User Grid -->
+    <div class="user-grid" id="user-results-grid">
+        <div class="empty-state" style="grid-column: 1 / -1;">
+            <div class="empty-icon">⏳</div>
+            <div class="empty-title">Loading members...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/explore.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Post Details — ConnectSphere{% endblock %}
+
+{% block content %}
+<div class="app-container single-column" id="post-detail-container">
+    <div style="margin-bottom: 1rem;">
+        <a href="{% url 'home_page' %}" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            ← Back to Feed
+        </a>
+    </div>
+
+    <!-- Post Article Card -->
+    <article class="post-card" style="margin-bottom: 1.5rem;">
+        <div class="post-header">
+            <div class="post-author-wrap">
+                <div id="post-author-avatar"></div>
+                <div class="post-author-info">
+                    <a href="#" id="post-author-username" class="post-author-name">Loading...</a>
+                    <span id="post-created-time" class="post-time"></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="post-full-content" class="post-content" style="font-size: 1.1rem; line-height: 1.7;"></div>
+        <div id="post-media-container"></div>
+
+        <div class="post-footer" style="margin-top: 1rem;">
+            <div class="post-stats-group">
+                <button class="btn-action" id="post-like-btn">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span id="post-like-count">0</span>
+                </button>
+                <div class="btn-action" style="cursor: default;">
+                    💬 <span id="post-comment-count">0</span> Comments
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <!-- Comments Section -->
+    <section class="card">
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem;">Comments</h2>
+
+        <!-- New Comment Form -->
+        <form id="new-comment-form" style="margin-bottom: 1.5rem;">
+            <div class="comment-input-row">
+                <input type="text" id="new-comment-text" class="comment-input" placeholder="Join the discussion..." required>
+                <button type="submit" id="submit-comment-btn" class="btn btn-primary btn-sm">Comment</button>
+            </div>
+        </form>
+
+        <!-- Comments Stream -->
+        <div class="comment-list" id="post-comments-stream" style="max-height: none;">
+            <div class="empty-state" style="padding: 1.5rem 0;">
+                <div class="empty-icon">⏳</div>
+                <div class="empty-title">Loading comments...</div>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.POST_ID = Number("{{ post_id }}");
+</script>
+<script src="{% static 'js/post.js' %}"></script>
+{% endblock %}
