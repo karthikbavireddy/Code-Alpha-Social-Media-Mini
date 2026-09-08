@@ -110,30 +110,60 @@ input, textarea, select {
 .brand-logo {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.7rem;
     font-family: var(--font-heading);
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     font-weight: 700;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #a5b4fc, #6366f1, #06b6d4);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    text-decoration: none;
     transition: var(--transition);
 }
 
+.brand-text {
+    background: linear-gradient(135deg, #c7d2fe 0%, #a855f7 55%, #38bdf8 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+}
+
 .brand-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: var(--radius-sm);
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-weight: 800;
-    font-size: 1rem;
-    box-shadow: var(--shadow-primary);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: var(--transition);
+    flex-shrink: 0;
+    -webkit-text-fill-color: initial; /* Fix inherited transparent text clip */
+}
+
+.brand-logo:hover .brand-icon {
+    transform: rotate(6deg) scale(1.06);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.55);
+}
+
+.nav-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 17px;
+    height: 17px;
+    line-height: 17px;
+    padding: 0 4px;
+    border-radius: 9999px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+    border: 1.5px solid #111827;
 }
 
 .nav-links {
@@ -270,28 +300,112 @@ input, textarea, select {
 .mini-profile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
     border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
-    margin-top: 0.5rem;
+    padding-top: 0.85rem;
+    margin-top: 0.75rem;
 }
 
 .stat-item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.2rem;
+    min-width: 0;
+    transition: var(--transition);
+}
+
+.stat-item:hover {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.25);
+    transform: translateY(-1px);
 }
 
 .stat-val {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--text-primary);
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: #ffffff;
+    line-height: 1.2;
 }
 
 .stat-label {
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
+    margin-top: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    text-align: center;
+}
+
+/* Sidebar navigation menu card */
+.sidebar-nav-card {
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.sidebar-nav-item:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #ffffff;
+    transform: translateX(3px);
+}
+
+.sidebar-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.sidebar-nav-item:hover .sidebar-nav-icon {
+    background: #6366f1;
+    color: #ffffff;
+}
+
+.sidebar-nav-text {
+    flex: 1;
+    white-space: nowrap;
+}
+
+.sidebar-nav-arrow {
+    font-size: 1.2rem;
+    line-height: 1;
+    color: var(--text-muted);
+    opacity: 0.4;
+    transition: var(--transition);
+}
+
+.sidebar-nav-item:hover .sidebar-nav-arrow {
+    opacity: 1;
+    color: #818cf8;
+    transform: translateX(2px);
 }
 
 /* =========================================================
@@ -1226,7 +1340,158 @@ input, textarea, select {
 }
 
 /* =========================================================
-   Mobile Bottom Navigation
+   Right Sidebar Discover & Suggestions
+   ========================================================= */
+.discover-card {
+    background: radial-gradient(circle at 85% 15%, rgba(168, 85, 247, 0.08) 0%, var(--bg-surface) 65%);
+}
+
+.discover-header {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.45rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffffff;
+}
+
+.discover-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0.85rem;
+}
+
+.sidebar-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.55rem;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    transition: var(--transition);
+}
+
+.suggestion-item:hover {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.suggestion-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.suggestion-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #fff;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.suggestion-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.suggestion-username {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #f3f4f6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-item:hover .suggestion-username {
+    color: #a5b4fc;
+}
+
+/* =========================================================
+   Mobile Top Header Actions
+   ========================================================= */
+.mobile-header-actions {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.mobile-header-btn {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.mobile-header-btn:hover {
+    color: #fff;
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.35);
+}
+
+.mobile-header-avatar-btn {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.mobile-header-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.mobile-header-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mobile-bottom-badge {
+    top: -2px;
+    right: 4px;
+}
+
+/* =========================================================
+   Mobile Bottom Navigation (App-like Dock)
    ========================================================= */
 .mobile-nav {
     display: none;
@@ -1234,12 +1499,14 @@ input, textarea, select {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 60px;
-    background: var(--bg-glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid var(--border-subtle);
-    z-index: 99;
+    height: 64px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(11, 15, 25, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
     align-items: center;
     justify-content: space-around;
 }
@@ -1248,13 +1515,31 @@ input, textarea, select {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: 0.72rem;
-    color: var(--text-secondary);
-    gap: 0.2rem;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    gap: 0.25rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+    text-decoration: none;
+    position: relative;
+    flex: 1;
+}
+
+.mobile-nav-item:hover {
+    color: var(--text-primary);
 }
 
 .mobile-nav-item.active {
     color: #818cf8;
+    font-weight: 600;
+}
+
+.mobile-nav-item.active svg {
+    filter: drop-shadow(0 0 8px rgba(129, 140, 248, 0.5));
+    transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -1262,7 +1547,7 @@ input, textarea, select {
    ========================================================= */
 @media (max-width: 1024px) {
     .app-container {
-        grid-template-columns: 220px minmax(0, 1fr);
+        grid-template-columns: 240px minmax(0, 1fr);
     }
     .right-sidebar {
         display: none;
@@ -1270,17 +1555,34 @@ input, textarea, select {
 }
 
 @media (max-width: 768px) {
+    .navbar {
+        height: 60px;
+    }
+    .navbar-container {
+        padding: 0 1rem;
+    }
+    .brand-logo {
+        font-size: 1.2rem;
+    }
+    .brand-icon {
+        width: 32px;
+        height: 32px;
+    }
     .app-container {
         grid-template-columns: 1fr;
-        margin-top: 1rem;
-        margin-bottom: 5rem;
+        margin-top: 0.75rem;
+        margin-bottom: 5.5rem;
         padding: 0 0.85rem;
+        gap: 1rem;
     }
     .left-sidebar {
         display: none;
     }
     .desktop-nav-links {
         display: none;
+    }
+    .mobile-header-actions {
+        display: flex;
     }
     .mobile-nav {
         display: flex;
@@ -1314,9 +1616,9 @@ input, textarea, select {
         white-space: nowrap;
     }
     .card {
-        padding: 1rem;
+        padding: 1.1rem;
     }
     .post-card {
-        padding: 1rem;
+        padding: 1.1rem;
     }
 }

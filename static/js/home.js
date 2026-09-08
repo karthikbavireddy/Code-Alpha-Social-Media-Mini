@@ -26,6 +26,15 @@ async function initCurrentUser() {
                 composerAvatar.outerHTML = `<div class="post-avatar" id="composer-avatar">${user.username.charAt(0).toUpperCase()}</div>`;
             }
         }
+
+        // Update mobile header avatar
+        const mobAvatar = document.getElementById('mobile-header-avatar');
+        if (mobAvatar && user.profile_picture) {
+            mobAvatar.innerHTML = `<img src="${user.profile_picture}" alt="${user.username}">`;
+        }
+
+        // Load dynamic sidebar creator suggestions
+        loadSidebarSuggestions();
     } catch (err) {
         if (err.status === 401) {
             window.location.href = '/login/';
@@ -54,6 +63,44 @@ function renderSidebarMiniProfile(user) {
     if (postCountEl) postCountEl.textContent = user.post_count ?? 0;
     if (followerCountEl) followerCountEl.textContent = user.follower_count ?? 0;
     if (followingCountEl) followingCountEl.textContent = user.following_count ?? 0;
+}
+
+// Fetch and render suggested creators in the Discover sidebar
+async function loadSidebarSuggestions() {
+    const suggestionsContainer = document.getElementById('sidebar-suggestions');
+    if (!suggestionsContainer) return;
+
+    try {
+        const users = await apiRequest('/api/search/');
+        if (!users || users.length === 0) {
+            suggestionsContainer.innerHTML = '';
+            return;
+        }
+
+        const candidates = users.slice(0, 3);
+        suggestionsContainer.innerHTML = candidates.map(u => {
+            const initial = (u.username ? u.username.charAt(0) : '?').toUpperCase();
+            const avatarHtml = u.profile_picture
+                ? `<img src="${u.profile_picture}" alt="${u.username}">`
+                : initial;
+
+            return `
+                <div class="suggestion-item">
+                    <a href="/profile/${u.username}/" class="suggestion-user-info">
+                        <div class="suggestion-avatar">${avatarHtml}</div>
+                        <div>
+                            <div class="suggestion-username">@${u.username}</div>
+                        </div>
+                    </a>
+                    <a href="/profile/${u.username}/" class="btn btn-outline btn-sm" style="padding: 0.3rem 0.65rem; font-size: 0.74rem;">
+                        View
+                    </a>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        // Silently skip if unavailable
+    }
 }
 
 // Setup Post Composer with image preview
@@ -182,11 +229,22 @@ async function loadFeed() {
 
         if (!posts || posts.length === 0) {
             feedContainer.innerHTML = `
-                <div class="empty-state card">
-                    <div class="empty-icon">🌐</div>
-                    <div class="empty-title">Your feed is quiet</div>
-                    <p class="empty-text">Share your thoughts or explore users to follow and build your sphere!</p>
-                    <a href="/explore/" class="btn btn-primary btn-sm" style="margin-top: 1rem;">Explore People</a>
+                <div class="empty-state card" style="padding: 3rem 1.5rem; text-align: center; border-radius: var(--radius-lg); background: radial-gradient(circle at 50% 25%, rgba(99, 102, 241, 0.08) 0%, rgba(17, 24, 39, 0.6) 70%); border: 1px solid rgba(99, 102, 241, 0.18);">
+                    <div style="width: 70px; height: 70px; margin: 0 auto 1.25rem; border-radius: 50%; background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.2)); border: 1px solid rgba(99,102,241,0.35); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(99,102,241,0.25);">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                    </div>
+                    <div class="empty-title" style="font-size: 1.25rem; font-weight: 700; color: #ffffff; margin-bottom: 0.5rem;">Your feed is quiet</div>
+                    <p class="empty-text" style="color: var(--text-muted); font-size: 0.92rem; max-width: 380px; margin: 0 auto 1.5rem; line-height: 1.55;">
+                        Connect with creators, share your thoughts, or follow inspiring people to build your personalized sphere!
+                    </p>
+                    <a href="/explore/" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.4rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                        <span>Explore People</span>
+                    </a>
                 </div>
             `;
             return;

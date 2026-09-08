@@ -145,3 +145,33 @@ async function handleLogout() {
         showToast(err.message || 'Logout failed.', 'error');
     }
 }
+
+// Global Unread Messages Counter & Badges for Desktop and Mobile
+async function updateUnreadMessagesBadges() {
+    const desktopBadge = document.getElementById('nav-messages-badge');
+    const mobileTopBadge = document.getElementById('mobile-top-messages-badge');
+    const mobileBottomBadge = document.getElementById('mobile-bottom-messages-badge');
+
+    if (!desktopBadge && !mobileTopBadge && !mobileBottomBadge) return;
+
+    try {
+        const res = await apiRequest('/api/messages/unread-count/');
+        const count = res ? (res.unread_count || 0) : 0;
+
+        [desktopBadge, mobileTopBadge, mobileBottomBadge].forEach(badge => {
+            if (!badge) return;
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+    } catch (err) {
+        // Silently skip if guest or network unavailable
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateUnreadMessagesBadges();
+});
