@@ -55,37 +55,52 @@
             <!-- Chat Active Room -->
             <div id="dm-chat-room" style="display: none; flex-direction: column; height: 100%;">
                 <!-- Chat Top Header -->
-                <div class="dm-chat-header" style="padding: 0.9rem 1.4rem; border-bottom: 1px solid var(--border-color); background: rgba(17, 24, 39, 0.92); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <button id="dm-back-to-list-btn" class="btn btn-outline btn-sm" onclick="closeChatMobile()" style="display: none; padding: 0.35rem 0.65rem; font-size: 0.78rem;" title="Back to conversations">
-                            ← Back
+                <div class="dm-chat-header">
+                    <div class="dm-header-left">
+                        <button id="dm-back-to-list-btn" class="dm-back-btn" onclick="closeChatMobile()" title="Back to conversations">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                            <span class="dm-back-text">Back</span>
                         </button>
-                        <a id="dm-partner-profile-link" href="#" style="text-decoration: none;">
-                            <div id="dm-partner-avatar" class="avatar avatar-md" style="width: 42px; height: 42px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 1.05rem;">
-                                ?
-                            </div>
-                        </a>
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                <a id="dm-partner-name" href="#" style="font-weight: 700; color: var(--text-primary); font-size: 1.05rem; text-decoration: none;">
+                        <div class="dm-avatar-wrapper">
+                            <a id="dm-partner-profile-link" href="#" style="text-decoration: none;">
+                                <div id="dm-partner-avatar" class="avatar avatar-md">
+                                    ?
+                                </div>
+                            </a>
+                            <span id="dm-partner-status-dot" class="dm-status-dot offline" title="Offline"></span>
+                        </div>
+                        <div class="dm-header-user-info">
+                            <div class="dm-header-name-row">
+                                <a id="dm-partner-name" href="#" class="dm-partner-name-text">
                                     Loading...
                                 </a>
-                                <span id="dm-mutual-badge" class="badge badge-primary" style="display: none; font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">
+                                <span id="dm-mutual-badge" class="dm-mutual-badge" style="display: none;">
                                     Mutual Follower
                                 </span>
                             </div>
-                            <div id="dm-partner-handle" style="font-size: 0.8rem; color: var(--text-muted);">
-                                @...
+                            <div class="dm-header-status-row">
+                                <span id="dm-partner-handle" class="dm-partner-handle-text">@...</span>
+                                <span class="dm-status-separator">•</span>
+                                <span id="dm-partner-status-pill" class="dm-status-pill offline">
+                                    <span class="dm-inline-pulse-dot"></span>
+                                    <span id="dm-partner-status-label">Offline</span>
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button id="dm-follow-btn" class="btn btn-primary btn-sm" style="display: none; font-size: 0.78rem;" onclick="handleFollowActivePartner()">
+                    <div class="dm-header-actions">
+                        <button id="dm-follow-btn" class="btn btn-primary btn-sm dm-action-btn" style="display: none;" onclick="handleFollowActivePartner()">
                             Follow
                         </button>
-                        <a id="dm-view-profile-btn" href="#" class="btn btn-outline btn-sm" style="font-size: 0.78rem;">
-                            View Profile
+                        <a id="dm-view-profile-btn" href="#" class="btn btn-outline btn-sm dm-action-btn dm-view-profile-btn" title="View Profile">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <span class="dm-profile-btn-text">Profile</span>
                         </a>
                     </div>
                 </div>
@@ -236,6 +251,197 @@
     padding: 0 4px;
 }
 
+/* Chat Top Header & Active Status */
+.dm-chat-header {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dm-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.dm-back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: var(--transition);
+}
+.dm-back-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
+}
+
+.dm-avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+#dm-partner-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    font-size: 1rem;
+    overflow: hidden;
+}
+.dm-status-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid #111827;
+    background: #6b7280;
+    transition: all 0.25s ease;
+}
+.dm-status-dot.online {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+}
+.dm-status-dot.offline {
+    background: #6b7280;
+}
+
+.dm-header-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+.dm-header-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.dm-partner-name-text {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.98rem;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
+    transition: color 0.15s ease;
+}
+.dm-partner-name-text:hover {
+    color: var(--primary-light);
+}
+.dm-mutual-badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dm-header-status-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dm-partner-handle-text {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dm-status-separator {
+    opacity: 0.45;
+    font-size: 0.7rem;
+}
+.dm-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.dm-status-pill.online {
+    color: #34d399;
+}
+.dm-status-pill.offline {
+    color: var(--text-muted);
+}
+.dm-inline-pulse-dot {
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.dm-status-pill.online .dm-inline-pulse-dot {
+    box-shadow: 0 0 6px #10b981;
+    animation: statusPulse 2s infinite ease-in-out;
+}
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(1.3); }
+}
+
+.dm-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.dm-action-btn {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.42rem 0.85rem !important;
+    font-size: 0.78rem !important;
+    flex-shrink: 0 !important;
+    border-radius: var(--radius-sm) !important;
+    box-sizing: border-box !important;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     .dm-page-container {
@@ -255,6 +461,38 @@
     }
     .dm-layout:not(.chat-open) .dm-chat-area {
         display: none !important;
+    }
+    .dm-chat-header {
+        padding: 0.65rem 0.75rem;
+        gap: 0.45rem;
+    }
+    .dm-header-left {
+        gap: 0.45rem;
+    }
+    .dm-back-btn {
+        padding: 0.45rem 0.5rem;
+    }
+    .dm-back-text {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .dm-mutual-badge {
+        display: none !important;
+    }
+    .dm-profile-btn-text {
+        display: none;
+    }
+    .dm-view-profile-btn {
+        width: 36px;
+        height: 36px;
+        padding: 0 !important;
+        justify-content: center;
+        border-radius: 50% !important;
+    }
+    .dm-partner-name-text {
+        max-width: 140px;
     }
 }
 </style>

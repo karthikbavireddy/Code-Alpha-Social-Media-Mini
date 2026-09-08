@@ -868,6 +868,59 @@ def api_search(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+def get_user_activity_status(user):
+    """
+    Computes online status and humanized activity text for a given user.
+    """
+    last_seen = None
+    if hasattr(user, 'profile') and user.profile.last_seen:
+        last_seen = user.profile.last_seen
+    elif user.last_login:
+        last_seen = user.last_login
+
+    if not last_seen:
+        return {
+            'is_online': False,
+            'status_text': 'Offline',
+            'last_seen': None
+        }
+
+    diff_seconds = (timezone.now() - last_seen).total_seconds()
+    if diff_seconds < 300:  # within 5 minutes is considered Active now
+        return {
+            'is_online': True,
+            'status_text': 'Active now',
+            'last_seen': last_seen.isoformat()
+        }
+    elif diff_seconds < 3600:
+        mins = max(1, int(diff_seconds // 60))
+        return {
+            'is_online': False,
+            'status_text': f'Active {mins}m ago',
+            'last_seen': last_seen.isoformat()
+        }
+    elif diff_seconds < 86400:
+        hours = max(1, int(diff_seconds // 3600))
+        return {
+            'is_online': False,
+            'status_text': f'Active {hours}h ago',
+            'last_seen': last_seen.isoformat()
+        }
+    elif diff_seconds < 604800:
+        days = max(1, int(diff_seconds // 86400))
+        return {
+            'is_online': False,
+            'status_text': f'Active {days}d ago',
+            'last_seen': last_seen.isoformat()
+        }
+    else:
+        return {
+            'is_online': False,
+            'status_text': 'Active recently',
+            'last_seen': last_seen.isoformat()
+        }
+
+
 # ==========================================
 # DIRECT MESSAGING API ENDPOINTS
 # ==========================================
@@ -905,6 +958,7 @@ def api_conversations(request):
 
         user_follows = Follow.objects.filter(follower=user, following=partner).exists()
         partner_follows = Follow.objects.filter(follower=partner, following=user).exists()
+        status_info = get_user_activity_status(partner)
 
         conversations.append({
             'partner': {
@@ -915,6 +969,9 @@ def api_conversations(request):
                 'is_following': user_follows,
                 'is_followed_by': partner_follows,
                 'is_mutual': user_follows and partner_follows,
+                'is_online': status_info['is_online'],
+                'status_text': status_info['status_text'],
+                'last_seen': status_info['last_seen'],
             },
             'last_message': {
                 'content': last_msg.content if last_msg else '',
@@ -959,6 +1016,7 @@ def api_message_contacts(request):
         avatar_url = None
         if hasattr(partner, 'profile') and partner.profile.profile_picture:
             avatar_url = request.build_absolute_uri(partner.profile.profile_picture.url)
+        status_info = get_user_activity_status(partner)
 
         contacts.append({
             'id': partner.id,
@@ -970,6 +1028,9 @@ def api_message_contacts(request):
             'is_mutual': is_mutual,
             'can_message': is_mutual or is_following or is_followed_by,
             'has_existing_chat': partner.id in active_chat_ids,
+            'is_online': status_info['is_online'],
+            'status_text': status_info['status_text'],
+            'last_seen': status_info['last_seen'],
         })
 
     # Sort: mutual followers first, then following, then alphabetically
@@ -1010,6 +1071,7 @@ def api_messages_with_user(request, username):
     user_follows_partner = Follow.objects.filter(follower=user, following=partner).exists()
     partner_follows_user = Follow.objects.filter(follower=partner, following=user).exists()
     is_mutual = user_follows_partner and partner_follows_user
+    status_info = get_user_activity_status(partner)
 
     return Response({
         'partner': {
@@ -1017,6 +1079,9 @@ def api_messages_with_user(request, username):
             'username': partner.username,
             'avatar': avatar_url,
             'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else '',
+            'is_online': status_info['is_online'],
+            'status_text': status_info['status_text'],
+            'last_seen': status_info['last_seen'],
         },
         'user_follows_partner': user_follows_partner,
         'partner_follows_user': partner_follows_user,

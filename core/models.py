@@ -4,6 +4,9 @@ from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 
 
+from django.utils import timezone
+
+
 class Profile(models.Model):
     """
     User profile extension storing bio and avatar.
@@ -26,6 +29,7 @@ class Profile(models.Model):
         help_text="Persistent base64 data URI fallback for ephemeral hosting like Render"
     )
     date_joined = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(default=timezone.now, null=True, blank=True)
 
     class Meta:
         verbose_name = "Profile"

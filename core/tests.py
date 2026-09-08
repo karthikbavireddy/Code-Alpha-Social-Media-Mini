@@ -307,3 +307,38 @@ class ConnectSphereTests(TestCase):
         target2 = next(c for c in res2.data if c['id'] == comment.id)
         self.assertEqual(target2['like_count'], 1)
         self.assertFalse(target2['liked_by_current_user'])
+
+    # 25. Active status tracking in Direct Messages
+    def test_25_partner_active_status(self):
+        from django.utils import timezone
+        import datetime
+        from .models import Message
+
+        # Set user2 last_seen to now
+        self.user2.profile.last_seen = timezone.now()
+        self.user2.profile.save()
+
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.get(f'/api/messages/{self.user2.username}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        partner = res.data['partner']
+        self.assertTrue(partner['is_online'])
+        self.assertEqual(partner['status_text'], 'Active now')
+
+        # Change user2 last_seen to 2 hours ago
+        self.user2.profile.last_seen = timezone.now() - datetime.timedelta(hours=2)
+        self.user2.profile.save()
+
+        res2 = self.client.get(f'/api/messages/{self.user2.username}/')
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        partner2 = res2.data['partner']
+        self.assertFalse(partner2['is_online'])
+        self.assertEqual(partner2['status_text'], 'Active 2h ago')
+
+        # Test active status in conversation list
+        Message.objects.create(sender=self.user1, recipient=self.user2, content="Test msg")
+        res3 = self.client.get('/api/conversations/')
+        self.assertEqual(res3.status_code, status.HTTP_200_OK)
+        conv = next(c for c in res3.data['conversations'] if c['partner']['username'] == self.user2.username)
+        self.assertIn('is_online', conv['partner'])
+        self.assertIn('status_text', conv['partner'])

@@ -116,10 +116,11 @@ function renderConversations() {
         const isSelected = activePartner && activePartner.toLowerCase() === c.partner.username.toLowerCase();
         const hasUnread = c.unread_count > 0;
         const lastMsg = c.last_message;
+        const isOnline = !!c.partner.is_online;
 
         return `
             <div class="dm-item ${isSelected ? 'active' : ''}" onclick="selectConversation('${escapeHtml(c.partner.username)}')">
-                <div style="position: relative;">
+                <div class="dm-avatar-wrapper">
                     ${c.partner.avatar ? `
                         <img src="${c.partner.avatar}" class="avatar avatar-md" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;">
                     ` : `
@@ -127,6 +128,7 @@ function renderConversations() {
                             ${escapeHtml(c.partner.username.charAt(0).toUpperCase())}
                         </div>
                     `}
+                    <span class="dm-status-dot ${isOnline ? 'online' : 'offline'}" title="${isOnline ? 'Active now' : (c.partner.status_text || 'Offline')}"></span>
                     ${hasUnread ? `
                         <span style="position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 6px #ef4444;"></span>
                     ` : ''}
@@ -186,10 +188,11 @@ function renderContacts() {
 
     container.innerHTML = filtered.map(contact => {
         const isSelected = activePartner && activePartner.toLowerCase() === contact.username.toLowerCase();
+        const isOnline = !!contact.is_online;
 
         return `
             <div class="dm-item ${isSelected ? 'active' : ''}" onclick="selectConversation('${escapeHtml(contact.username)}')">
-                <div>
+                <div class="dm-avatar-wrapper">
                     ${contact.avatar ? `
                         <img src="${contact.avatar}" class="avatar avatar-md" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;">
                     ` : `
@@ -197,6 +200,7 @@ function renderContacts() {
                             ${escapeHtml(contact.username.charAt(0).toUpperCase())}
                         </div>
                     `}
+                    <span class="dm-status-dot ${isOnline ? 'online' : 'offline'}" title="${isOnline ? 'Active now' : (contact.status_text || 'Offline')}"></span>
                 </div>
 
                 <div style="flex: 1; min-width: 0;">
@@ -302,6 +306,10 @@ async function loadMessagesForUser(username) {
 async function pollActiveChat(username) {
     try {
         const data = await apiRequest(`/api/messages/${encodeURIComponent(username)}/`);
+        if (data.partner) {
+            partnerInfo = { ...partnerInfo, ...data.partner };
+            updateChatHeader(username, partnerInfo);
+        }
         const newMessages = data.messages || [];
         // Only re-render if message count or last message ID changed
         if (newMessages.length !== messages.length || 
@@ -326,6 +334,9 @@ function updateChatHeader(username, info) {
     const followAlert = document.getElementById('dm-follow-alert');
     const followAlertText = document.getElementById('dm-follow-alert-text');
     const followBtn = document.getElementById('dm-follow-btn');
+    const statusDot = document.getElementById('dm-partner-status-dot');
+    const statusPill = document.getElementById('dm-partner-status-pill');
+    const statusLabel = document.getElementById('dm-partner-status-label');
 
     if (nameEl) nameEl.textContent = username;
     if (handleEl) handleEl.textContent = `@${username}`;
@@ -338,6 +349,20 @@ function updateChatHeader(username, info) {
         } else {
             avatarEl.textContent = username.charAt(0).toUpperCase();
         }
+    }
+
+    // Active status updates
+    const isOnline = !!(info && info.is_online);
+    const statusText = (info && info.status_text) ? info.status_text : 'Offline';
+
+    if (statusDot) {
+        statusDot.className = `dm-status-dot ${isOnline ? 'online' : 'offline'}`;
+        statusDot.title = isOnline ? 'Active now' : statusText;
+    }
+
+    if (statusPill && statusLabel) {
+        statusPill.className = `dm-status-pill ${isOnline ? 'online' : 'offline'}`;
+        statusLabel.textContent = isOnline ? 'Active now' : statusText;
     }
 
     if (mutualBadge) {
