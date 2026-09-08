@@ -477,3 +477,21 @@ class ConnectSphereTests(TestCase):
         self.assertEqual(read_res.data['unread_count'], 0)
         self.assertEqual(Notification.objects.filter(recipient=self.user1, is_read=False).count(), 0)
 
+    # 31. Followers and following list endpoints
+    def test_31_followers_and_following_endpoints(self):
+        # user2 follows user1
+        Follow.objects.create(follower=self.user2, following=self.user1)
+
+        # Get user1's followers -> should contain user2
+        res_followers = self.client.get(f'/api/users/{self.user1.username}/followers/')
+        self.assertEqual(res_followers.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_followers.data['count'], 1)
+        self.assertEqual(res_followers.data['results'][0]['username'], self.user2.username)
+
+        # Get user2's following -> should contain user1
+        res_following = self.client.get(f'/api/users/{self.user2.username}/following/')
+        self.assertEqual(res_following.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_following.data['count'], 1)
+        self.assertEqual(res_following.data['results'][0]['username'], self.user1.username)
+
+

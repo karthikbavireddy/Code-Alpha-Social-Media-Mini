@@ -876,9 +876,8 @@ def api_user_followers(request, username):
     Retrieve list of users following the specified user.
     """
     target_user = get_object_or_404(User, username__iexact=username)
-    followers = User.objects.filter(
-        following__following=target_user
-    ).select_related('profile').distinct()
+    follower_ids = Follow.objects.filter(following=target_user).values_list('follower_id', flat=True)
+    followers = User.objects.filter(id__in=follower_ids).select_related('profile')
 
     serializer = UserPublicSerializer(followers, many=True, context={'request': request})
     return Response({
@@ -894,9 +893,8 @@ def api_user_following(request, username):
     Retrieve list of users whom the specified user follows.
     """
     target_user = get_object_or_404(User, username__iexact=username)
-    following_users = User.objects.filter(
-        followers__follower=target_user
-    ).select_related('profile').distinct()
+    following_ids = Follow.objects.filter(follower=target_user).values_list('following_id', flat=True)
+    following_users = User.objects.filter(id__in=following_ids).select_related('profile')
 
     serializer = UserPublicSerializer(following_users, many=True, context={'request': request})
     return Response({

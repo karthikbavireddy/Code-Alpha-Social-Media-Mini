@@ -27,11 +27,11 @@
                     <span class="profile-stat-number" id="profile-posts-count">0</span>
                     <span class="profile-stat-text">Posts</span>
                 </div>
-                <div class="profile-stat">
+                <div class="profile-stat profile-stat-clickable" id="profile-followers-btn" onclick="openFollowListModal('followers')" role="button" tabindex="0" title="View followers">
                     <span class="profile-stat-number" id="profile-followers-count">0</span>
                     <span class="profile-stat-text">Followers</span>
                 </div>
-                <div class="profile-stat">
+                <div class="profile-stat profile-stat-clickable" id="profile-following-btn" onclick="openFollowListModal('following')" role="button" tabindex="0" title="View following">
                     <span class="profile-stat-number" id="profile-following-count">0</span>
                     <span class="profile-stat-text">Following</span>
                 </div>
@@ -96,11 +96,40 @@
         </div>
     </div>
 </div>
+
+<!-- Followers & Following Modal -->
+<div class="modal-overlay" id="follow-list-modal" onclick="if(event.target === this) closeFollowListModal()">
+    <div class="modal-card follow-list-card">
+        <div class="modal-header follow-list-header">
+            <div class="follow-modal-tabs">
+                <button type="button" class="follow-modal-tab active" id="modal-tab-followers" onclick="switchFollowListTab('followers')">
+                    Followers (<span id="modal-followers-tab-count">0</span>)
+                </button>
+                <button type="button" class="follow-modal-tab" id="modal-tab-following" onclick="switchFollowListTab('following')">
+                    Following (<span id="modal-following-tab-count">0</span>)
+                </button>
+            </div>
+            <button type="button" class="modal-close" onclick="closeFollowListModal()">&times;</button>
+        </div>
+
+        <div class="follow-modal-search-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="follow-modal-search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="follow-modal-search-input" placeholder="Search followers & following..." oninput="filterFollowList()" class="follow-modal-search-input">
+        </div>
+
+        <div class="follow-list-body" id="follow-list-body">
+            <div class="follow-list-loading">
+                <div class="notif-spinner"></div>
+                <span>Loading users...</span>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     window.TARGET_USERNAME = "{{ target_username }}";
 </script>
-<script src="{% static 'js/profile.js' %}"></script>
+<script src="{% static 'js/profile.js' %}?v=2.8"></script>
 {% endblock %}
