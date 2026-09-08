@@ -282,11 +282,18 @@ async function loadMessagesForUser(username) {
     try {
         const data = await apiRequest(`/api/messages/${encodeURIComponent(username)}/`);
         messages = data.messages || [];
-        partnerInfo = data.partner || {};
-        partnerInfo.can_message = data.can_message ?? true;
-        partnerInfo.is_mutual = data.is_mutual ?? false;
-        partnerInfo.user_follows_partner = data.user_follows_partner ?? false;
-        partnerInfo.partner_follows_user = data.partner_follows_user ?? false;
+
+        const isFollowed = Boolean(data.partner?.is_following ?? data.partner?.user_follows_partner ?? data.user_follows_partner);
+        const isMutual = Boolean(data.partner?.is_mutual ?? data.is_mutual);
+
+        partnerInfo = {
+            ...(data.partner || {}),
+            can_message: data.can_message ?? true,
+            is_mutual: isMutual,
+            user_follows_partner: isFollowed,
+            is_following: isFollowed,
+            partner_follows_user: data.partner_follows_user ?? false,
+        };
 
         updateChatHeader(username, partnerInfo);
         renderMessages();
@@ -307,7 +314,17 @@ async function pollActiveChat(username) {
     try {
         const data = await apiRequest(`/api/messages/${encodeURIComponent(username)}/`);
         if (data.partner) {
-            partnerInfo = { ...partnerInfo, ...data.partner };
+            const isFollowed = Boolean(data.partner.is_following ?? data.partner.user_follows_partner ?? data.user_follows_partner ?? partnerInfo?.user_follows_partner);
+            const isMutual = Boolean(data.partner.is_mutual ?? data.is_mutual ?? partnerInfo?.is_mutual);
+
+            partnerInfo = {
+                ...partnerInfo,
+                ...data.partner,
+                user_follows_partner: isFollowed,
+                is_following: isFollowed,
+                is_mutual: isMutual,
+                can_message: data.can_message ?? partnerInfo?.can_message ?? true,
+            };
             updateChatHeader(username, partnerInfo);
         }
         const newMessages = data.messages || [];
@@ -366,23 +383,24 @@ function updateChatHeader(username, info) {
     }
 
     if (mutualBadge) {
-        mutualBadge.style.display = info.is_mutual ? 'inline-block' : 'none';
+        mutualBadge.style.display = info && info.is_mutual ? 'inline-block' : 'none';
     }
 
     // Follow notice
     if (followAlert) {
-        if (info.can_message === false) {
-            followAlert.style.display = 'flex';
-            if (followAlertText) {
-                followAlertText.textContent = `You must follow each other to exchange messages with @${username}.`;
-            }
-        } else {
-            followAlert.style.display = 'none';
+        const canMessage = info ? (info.can_message !== false) : true;
+        followAlert.style.display = canMessage ? 'none' : 'flex';
+        if (!canMessage && followAlertText) {
+            followAlertText.textContent = `You must follow each other to exchange messages with @${username}.`;
         }
     }
 
+    // Follow button: NEVER show Follow button if already followed or mutual!
     if (followBtn) {
-        followBtn.style.display = (!info.user_follows_partner) ? 'inline-block' : 'none';
+        const alreadyFollows = Boolean(
+            info && (info.user_follows_partner || info.is_following || info.is_mutual)
+        );
+        followBtn.style.display = alreadyFollows ? 'none' : 'inline-block';
     }
 }
 
@@ -498,7 +516,14 @@ async function handleFollowActivePartner() {
         const res = await apiRequest(`/api/users/${encodeURIComponent(activePartner)}/follow/`, {
             method: 'POST'
         });
-        showToast(res.message, 'success');
+        const isFollowing = !!res.following;
+        showToast(isFollowing ? `You are now following @${activePartner}` : `Unfollowed @${activePartner}`, 'success');
+        if (partnerInfo) {
+            partnerInfo.user_follows_partner = isFollowing;
+            partnerInfo.is_following = isFollowing;
+            if (!isFollowing) partnerInfo.is_mutual = false;
+            updateChatHeader(activePartner, partnerInfo);
+        }
         await loadMessagesForUser(activePartner);
         await loadContacts();
     } catch (err) {

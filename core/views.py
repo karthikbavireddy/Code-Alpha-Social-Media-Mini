@@ -868,6 +868,23 @@ def api_search(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+def touch_user_activity(user):
+    """
+    Ensure the user's profile.last_seen is kept fresh with minimal DB overhead.
+    """
+    if not user or not user.is_authenticated:
+        return
+    try:
+        profile = getattr(user, 'profile', None)
+        if profile:
+            now = timezone.now()
+            if not profile.last_seen or (now - profile.last_seen).total_seconds() > 20:
+                profile.last_seen = now
+                profile.save(update_fields=['last_seen'])
+    except Exception:
+        pass
+
+
 def get_user_activity_status(user):
     """
     Computes online status and humanized activity text for a given user.
@@ -886,7 +903,11 @@ def get_user_activity_status(user):
         }
 
     diff_seconds = (timezone.now() - last_seen).total_seconds()
-    if diff_seconds < 300:  # within 5 minutes is considered Active now
+    if diff_seconds < 0:
+        diff_seconds = 0
+
+    # Within 5 minutes (300 seconds) is considered Active now
+    if diff_seconds <= 300:
         return {
             'is_online': True,
             'status_text': 'Active now',
@@ -916,7 +937,7 @@ def get_user_activity_status(user):
     else:
         return {
             'is_online': False,
-            'status_text': 'Active recently',
+            'status_text': 'Offline',
             'last_seen': last_seen.isoformat()
         }
 
@@ -933,6 +954,7 @@ def api_conversations(request):
     including the partner's info, latest message, and unread count.
     """
     user = request.user
+    touch_user_activity(user)
     # Find all users with whom messages have been exchanged
     sent_to = Message.objects.filter(sender=user).values_list('recipient_id', flat=True)
     received_from = Message.objects.filter(recipient=user).values_list('sender_id', flat=True)
@@ -967,7 +989,9 @@ def api_conversations(request):
                 'avatar': avatar_url,
                 'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else '',
                 'is_following': user_follows,
+                'user_follows_partner': user_follows,
                 'is_followed_by': partner_follows,
+                'partner_follows_user': partner_follows,
                 'is_mutual': user_follows and partner_follows,
                 'is_online': status_info['is_online'],
                 'status_text': status_info['status_text'],
@@ -998,6 +1022,7 @@ def api_message_contacts(request):
     start a conversation with anyone they follow.
     """
     user = request.user
+    touch_user_activity(user)
     following_ids = set(Follow.objects.filter(follower=user).values_list('following_id', flat=True))
     follower_ids = set(Follow.objects.filter(following=user).values_list('follower_id', flat=True))
 
@@ -1024,7 +1049,9 @@ def api_message_contacts(request):
             'avatar': avatar_url,
             'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else '',
             'is_following': is_following,
+            'user_follows_partner': is_following,
             'is_followed_by': is_followed_by,
+            'partner_follows_user': is_followed_by,
             'is_mutual': is_mutual,
             'can_message': is_mutual or is_following or is_followed_by,
             'has_existing_chat': partner.id in active_chat_ids,
@@ -1048,6 +1075,7 @@ def api_messages_with_user(request, username):
     """
     partner = get_object_or_404(User, username__iexact=username)
     user = request.user
+    touch_user_activity(user)
 
     # Fetch messages between user and partner
     messages = Message.objects.filter(
@@ -1082,6 +1110,10 @@ def api_messages_with_user(request, username):
             'is_online': status_info['is_online'],
             'status_text': status_info['status_text'],
             'last_seen': status_info['last_seen'],
+            'is_following': user_follows_partner,
+            'user_follows_partner': user_follows_partner,
+            'partner_follows_user': partner_follows_user,
+            'is_mutual': is_mutual,
         },
         'user_follows_partner': user_follows_partner,
         'partner_follows_user': partner_follows_user,
@@ -1100,6 +1132,7 @@ def api_send_message(request, username):
     """
     partner = get_object_or_404(User, username__iexact=username)
     content = request.data.get('content', '').strip()
+    touch_user_activity(request.user)
 
     if not content:
         return Response({'error': 'Message content cannot be empty.'}, status=status.HTTP_400_BAD_REQUEST)
