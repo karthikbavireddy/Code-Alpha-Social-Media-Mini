@@ -64,6 +64,13 @@ def explore_view(request):
     return render(request, 'explore.html')
 
 
+def messages_page_view(request, username=None):
+    """Render the Direct Messages (DM) page."""
+    if not request.user.is_authenticated:
+        return redirect('login_page')
+    return render(request, 'messages.html', {'target_username': username or ''})
+
+
 # ==========================================
 # AUTHENTICATION API ENDPOINTS
 # ==========================================

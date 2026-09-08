@@ -9,6 +9,8 @@ urlpatterns = [
     path('profile/<str:username>/', views.profile_view, name='profile_page'),
     path('posts/<int:post_id>/', views.post_detail_view, name='post_detail_page'),
     path('explore/', views.explore_view, name='explore_page'),
+    path('messages/', views.messages_page_view, name='messages_page'),
+    path('messages/<str:username>/', views.messages_page_view, name='messages_with_user_page'),
 
     # REST API Endpoints
     # Auth

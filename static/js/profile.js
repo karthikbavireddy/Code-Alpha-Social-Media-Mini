@@ -63,7 +63,13 @@ function renderProfileHeader(data) {
         avatarWrap.innerHTML = renderAvatarHtml(data.profile_picture, data.username, 'profile-large-avatar');
     }
 
-    if (nameEl) nameEl.textContent = data.username;
+    if (nameEl) {
+        nameEl.innerHTML = `
+            ${escapeHtml(data.username)}
+            ${data.is_mutual_following ? '<span class="badge badge-primary" style="font-size: 0.72rem; vertical-align: middle; margin-left: 8px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;">Mutual Follower</span>' : ''}
+            ${!data.is_mutual_following && data.is_followed_by ? '<span class="badge" style="font-size: 0.72rem; vertical-align: middle; margin-left: 8px; background: rgba(255, 255, 255, 0.08); color: var(--text-muted);">Follows you</span>' : ''}
+        `;
+    }
     if (usernameEl) usernameEl.textContent = `@${data.username}`;
     if (bioEl) bioEl.textContent = data.bio || 'No bio yet.';
     if (postCountEl) postCountEl.textContent = data.post_count ?? 0;
@@ -84,7 +90,7 @@ function renderProfileHeader(data) {
                 <button class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'}" id="follow-toggle-btn" onclick="toggleFollow('${data.username}')">
                     ${isFollowing ? 'Unfollow' : 'Follow'}
                 </button>
-                <a href="/#messages-${data.username}" class="btn btn-outline" style="margin-left: 0.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                <a href="/messages/${encodeURIComponent(data.username)}/" class="btn btn-outline" id="profile-message-btn" style="margin-left: 0.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
                     💬 Message
                 </a>
             `;

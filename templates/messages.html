@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages — ConnectSphere{% endblock %}
+
+{% block content %}
+<div class="app-container" style="max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem;">
+    <div class="dm-layout card" style="padding: 0; overflow: hidden; display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 120px); min-height: 580px; border-radius: var(--radius-lg); background: var(--bg-surface); border: 1px solid var(--border-color);">
+        
+        <!-- Left Column: Conversations & Friends -->
+        <aside class="dm-sidebar" style="display: flex; flex-direction: column; border-right: 1px solid var(--border-color); background: rgba(11, 15, 25, 0.7);">
+            <!-- Sidebar Header -->
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                        <span>💬</span> Direct Messages
+                    </h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="dm-tabs" style="display: flex; gap: 0.35rem; background: rgba(255, 255, 255, 0.05); padding: 3px; border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
+                    <button type="button" id="tab-btn-chats" class="dm-tab-btn active" onclick="switchDmTab('chats')">
+                        Chats
+                    </button>
+                    <button type="button" id="tab-btn-contacts" class="dm-tab-btn" onclick="switchDmTab('contacts')">
+                        Friends & Following
+                    </button>
+                </div>
+
+                <!-- Search -->
+                <div style="position: relative;">
+                    <input type="text" id="dm-search-input" class="form-input" placeholder="Search friends or chats..." style="padding: 0.5rem 0.75rem; font-size: 0.85rem; border-radius: var(--radius-full);">
+                </div>
+            </div>
+
+            <!-- List Containers -->
+            <div id="dm-conversations-list" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
+                <div class="empty-state" style="padding: 2rem 1rem;">
+                    <div class="empty-icon">⏳</div>
+                    <div class="empty-title" style="font-size: 0.9rem;">Loading messages...</div>
+                </div>
+            </div>
+
+            <div id="dm-contacts-list" style="flex: 1; overflow-y: auto; padding: 0.5rem; display: none;">
+                <div class="empty-state" style="padding: 2rem 1rem;">
+                    <div class="empty-icon">⏳</div>
+                    <div class="empty-title" style="font-size: 0.9rem;">Loading friends...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Column: Personal Chat Room -->
+        <section class="dm-chat-area" style="display: flex; flex-direction: column; background: var(--bg-surface); position: relative;">
+            
+            <!-- Chat Active Room -->
+            <div id="dm-chat-room" style="display: none; flex-direction: column; height: 100%;">
+                <!-- Chat Top Header -->
+                <div class="dm-chat-header" style="padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border-color); background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <a id="dm-partner-profile-link" href="#" style="text-decoration: none;">
+                            <div id="dm-partner-avatar" class="avatar avatar-md" style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff;">
+                                ?
+                            </div>
+                        </a>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <a id="dm-partner-name" href="#" style="font-weight: 700; color: var(--text-primary); font-size: 1rem; text-decoration: none;">
+                                    Loading...
+                                </a>
+                                <span id="dm-mutual-badge" class="badge badge-primary" style="display: none; font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;">
+                                    Mutual Follower
+                                </span>
+                            </div>
+                            <div id="dm-partner-handle" style="font-size: 0.78rem; color: var(--text-muted);">
+                                @...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button id="dm-follow-btn" class="btn btn-primary btn-sm" style="display: none; font-size: 0.78rem;" onclick="handleFollowActivePartner()">
+                            Follow
+                        </button>
+                        <a id="dm-view-profile-btn" href="#" class="btn btn-outline btn-sm" style="font-size: 0.78rem;">
+                            View Profile
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Follow Status Notice if not connected -->
+                <div id="dm-follow-alert" style="display: none; padding: 0.65rem 1rem; background: rgba(99, 102, 241, 0.15); border-bottom: 1px solid rgba(99, 102, 241, 0.3); font-size: 0.82rem; color: #c7d2fe; align-items: center; justify-content: space-between;">
+                    <span id="dm-follow-alert-text">Both users must follow each other to send direct messages.</span>
+                    <button class="btn btn-primary btn-sm" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="handleFollowActivePartner()">
+                        Follow Back
+                    </button>
+                </div>
+
+                <!-- Messages Stream -->
+                <div id="dm-messages-container" style="flex: 1; overflow-y: auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <!-- Injected message bubbles -->
+                </div>
+
+                <!-- Message Input Footer -->
+                <form id="dm-send-form" style="padding: 0.85rem 1.25rem; border-top: 1px solid var(--border-color); background: rgba(17, 24, 39, 0.95); display: flex; gap: 0.65rem; align-items: center;" onsubmit="handleSendDmMessage(event)">
+                    <input type="text" id="dm-message-input" class="form-input" placeholder="Write a personal message..." style="border-radius: var(--radius-full); padding: 0.7rem 1.15rem; font-size: 0.9rem;" autocomplete="off">
+                    <button type="submit" id="dm-send-btn" class="btn btn-primary" style="border-radius: var(--radius-full); padding: 0.7rem 1.25rem; display: flex; align-items: center; gap: 0.35rem;">
+                        <span>Send</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Empty State (No chat selected) -->
+            <div id="dm-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 2rem; text-align: center; color: var(--text-secondary);">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem;">
+                    💬
+                </div>
+                <h3 style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 0.4rem; font-weight: 700;">
+                    Your Personal Messages
+                </h3>
+                <p style="max-width: 360px; font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.25rem;">
+                    Select an active conversation on the left, or message a creator you follow!
+                </p>
+                <button class="btn btn-primary btn-sm" onclick="switchDmTab('contacts')">
+                    Browse Connected Friends
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+/* Responsive DM styles */
+.dm-tab-btn {
+    flex: 1;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.dm-tab-btn.active {
+    background: var(--primary);
+    color: #fff;
+}
+.dm-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 0.25rem;
+}
+.dm-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+.dm-item.active {
+    background: rgba(99, 102, 241, 0.18);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.dm-bubble {
+    max-width: 75%;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+.dm-bubble-mine {
+    background: var(--primary);
+    color: #fff;
+    align-self: flex-end;
+    border-radius: 16px 16px 4px 16px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+.dm-bubble-theirs {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    align-self: flex-start;
+    border-radius: 16px 16px 16px 4px;
+    border: 1px solid var(--border-subtle);
+}
+.dm-time {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    padding: 0 4px;
+}
+@media (max-width: 768px) {
+    .dm-layout {
+        grid-template-columns: 1fr !important;
+        height: calc(100vh - 130px) !important;
+    }
+    .dm-sidebar.hidden-mobile {
+        display: none !important;
+    }
+    .dm-chat-area.hidden-mobile {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.TARGET_USERNAME = "{{ target_username }}";
+</script>
+<script src="{% static 'js/messages.js' %}"></script>
+{% endblock %}
