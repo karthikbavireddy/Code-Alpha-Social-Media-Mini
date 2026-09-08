@@ -277,13 +277,18 @@ class MessageSerializer(serializers.ModelSerializer):
     recipient_username = serializers.CharField(source='recipient.username', read_only=True)
     recipient_avatar = serializers.SerializerMethodField()
     is_mine = serializers.SerializerMethodField()
+    reply_to_id = serializers.IntegerField(source='reply_to.id', read_only=True, default=None)
+    reply_to_sender = serializers.CharField(source='reply_to.sender.username', read_only=True, default=None)
+    reply_to_content = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = [
             'id', 'sender_username', 'sender_avatar',
             'recipient_username', 'recipient_avatar',
-            'content', 'created_at', 'is_read', 'is_mine'
+            'content', 'created_at', 'is_read', 'is_mine',
+            'reply_to_id', 'reply_to_sender', 'reply_to_content',
+            'is_edited', 'edited_at'
         ]
 
     def get_sender_avatar(self, obj):
@@ -297,4 +302,9 @@ class MessageSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.sender_id == request.user.id
         return False
+
+    def get_reply_to_content(self, obj):
+        if obj.reply_to:
+            return obj.reply_to.content
+        return None
 

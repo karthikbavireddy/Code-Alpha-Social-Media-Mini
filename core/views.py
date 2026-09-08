@@ -1080,7 +1080,7 @@ def api_messages_with_user(request, username):
     # Fetch messages between user and partner
     messages = Message.objects.filter(
         Q(sender=user, recipient=partner) | Q(sender=partner, recipient=user)
-    ).select_related('sender__profile', 'recipient__profile').order_by('created_at')
+    ).select_related('sender__profile', 'recipient__profile', 'reply_to', 'reply_to__sender').order_by('created_at')
 
     # Mark incoming unread messages as read
     Message.objects.filter(
@@ -1129,9 +1129,11 @@ def api_send_message(request, username):
     """
     Send a direct message to target username.
     Both users following each other (or connected via follow) can chat normally.
+    Supports quoting / replying to a previous message via reply_to_id.
     """
     partner = get_object_or_404(User, username__iexact=username)
     content = request.data.get('content', '').strip()
+    reply_to_id = request.data.get('reply_to_id')
     touch_user_activity(request.user)
 
     if not content:
@@ -1149,14 +1151,51 @@ def api_send_message(request, username):
             'error': 'You must follow each other to send direct messages.'
         }, status=status.HTTP_403_FORBIDDEN)
 
+    reply_to_obj = None
+    if reply_to_id:
+        try:
+            reply_to_obj = Message.objects.filter(
+                id=reply_to_id
+            ).filter(
+                Q(sender=request.user, recipient=partner) | Q(sender=partner, recipient=request.user)
+            ).first()
+        except Exception:
+            reply_to_obj = None
+
     message = Message.objects.create(
         sender=request.user,
         recipient=partner,
-        content=content
+        content=content,
+        reply_to=reply_to_obj
     )
 
     serializer = MessageSerializer(message, context={'request': request})
     return Response({'message': serializer.data}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['PATCH', 'PUT', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_edit_message(request, message_id):
+    """
+    Edit an existing message sent by the authenticated user.
+    """
+    message = get_object_or_404(Message, id=message_id)
+    touch_user_activity(request.user)
+
+    if message.sender_id != request.user.id:
+        return Response({'error': 'You can only edit your own messages.'}, status=status.HTTP_403_FORBIDDEN)
+
+    content = request.data.get('content', '').strip()
+    if not content:
+        return Response({'error': 'Message content cannot be empty.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    message.content = content
+    message.is_edited = True
+    message.edited_at = timezone.now()
+    message.save(update_fields=['content', 'is_edited', 'edited_at'])
+
+    serializer = MessageSerializer(message, context={'request': request})
+    return Response({'message': serializer.data}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])

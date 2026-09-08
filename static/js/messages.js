@@ -10,6 +10,8 @@ let partnerInfo = null;
 let currentTab = 'chats'; // 'chats' | 'contacts'
 let pollingInterval = null;
 let isSending = false;
+let activeReplyMessage = null;
+let activeEditingMessage = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadConversations();
@@ -349,9 +351,18 @@ async function pollActiveChat(username) {
             updateChatHeader(username, partnerInfo);
         }
         const newMessages = data.messages || [];
-        // Only re-render if message count or last message ID changed
-        if (newMessages.length !== messages.length || 
-            (newMessages.length > 0 && newMessages[newMessages.length - 1].id !== (messages[messages.length - 1]?.id))) {
+        let hasChanges = newMessages.length !== messages.length;
+        if (!hasChanges && newMessages.length > 0) {
+            for (let i = 0; i < newMessages.length; i++) {
+                if (newMessages[i].id !== messages[i]?.id || 
+                    newMessages[i].content !== messages[i]?.content ||
+                    newMessages[i].is_edited !== messages[i]?.is_edited) {
+                    hasChanges = true;
+                    break;
+                }
+            }
+        }
+        if (hasChanges) {
             messages = newMessages;
             renderMessages();
             scrollToBottom();
@@ -475,19 +486,240 @@ function renderMessages() {
 
     container.innerHTML = messages.map(m => {
         const isMine = m.is_mine;
+        const rawContent = m.content || '';
 
         return `
-            <div style="display: flex; flex-direction: column; align-items: ${isMine ? 'flex-end' : 'flex-start'};">
-                <div class="dm-bubble ${isMine ? 'dm-bubble-mine' : 'dm-bubble-theirs'}">
-                    ${escapeHtml(m.content)}
+            <div class="dm-msg-row ${isMine ? 'mine' : 'theirs'}" id="dm-msg-${m.id}" data-id="${m.id}">
+                <div class="dm-drag-reply-icon" id="dm-drag-icon-${m.id}">↩</div>
+                <div class="dm-bubble-wrapper" id="dm-wrapper-${m.id}" data-id="${m.id}">
+                    <!-- Floating Actions Bar -->
+                    <div class="dm-msg-actions">
+                        <button type="button" class="dm-msg-action-btn" title="Reply (or drag bubble)" onclick="event.stopPropagation(); startReplyToMessage(${m.id})">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+                        </button>
+                        <button type="button" class="dm-msg-action-btn" title="Copy text" onclick="event.stopPropagation(); copyMessageText('${escapeJsString(rawContent)}')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                        ${isMine ? `
+                            <button type="button" class="dm-msg-action-btn" title="Edit message" onclick="event.stopPropagation(); startEditMessage(${m.id})">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <!-- Bubble -->
+                    <div class="dm-bubble ${isMine ? 'dm-bubble-mine' : 'dm-bubble-theirs'}">
+                        ${m.reply_to_id ? `
+                            <div class="dm-reply-quote" onclick="event.stopPropagation(); scrollToRepliedMessage(${m.reply_to_id})">
+                                <div class="dm-reply-quote-sender">↩ @${escapeHtml(m.reply_to_sender || 'User')}</div>
+                                <div class="dm-reply-quote-text">${escapeHtml(m.reply_to_content || 'Quoted message')}</div>
+                            </div>
+                        ` : ''}
+                        <div>${formatMessageContent(rawContent)}</div>
+                    </div>
                 </div>
                 <div class="dm-time">
                     ${formatDmTime(m.created_at)}
+                    ${m.is_edited ? '<span class="dm-edited-tag">(edited)</span>' : ''}
                     ${isMine ? (m.is_read ? ' ✓✓' : ' ✓') : ''}
                 </div>
             </div>
         `;
     }).join('');
+
+    setupDragToReplyListeners();
+}
+
+// Auto-link URLs inside message text
+function formatMessageContent(rawText) {
+    if (!rawText) return '';
+    const escaped = escapeHtml(rawText);
+    const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s]|www\.[^\s<]+[^<.,:;"')\]\s])/gi;
+    return escaped.replace(urlRegex, (matched) => {
+        const href = (matched.startsWith('http://') || matched.startsWith('https://'))
+            ? matched
+            : `https://${matched}`;
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="dm-link" onclick="event.stopPropagation()">${matched}</a>`;
+    });
+}
+
+// Copy message text
+async function copyMessageText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showToast('Message copied to clipboard!', 'success');
+    } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            showToast('Message copied to clipboard!', 'success');
+        } catch (err) {
+            showToast('Could not copy message.', 'error');
+        }
+        document.body.removeChild(ta);
+    }
+}
+
+// Start reply to a message
+function startReplyToMessage(msgId) {
+    const target = messages.find(m => m.id === msgId);
+    if (!target) return;
+
+    if (activeEditingMessage) {
+        cancelContextAction(false);
+    }
+
+    activeReplyMessage = {
+        id: target.id,
+        sender: target.sender_username,
+        snippet: (target.content || '').slice(0, 75)
+    };
+
+    const banner = document.getElementById('dm-context-banner');
+    const icon = document.getElementById('dm-context-icon');
+    const title = document.getElementById('dm-context-title');
+    const snippet = document.getElementById('dm-context-snippet');
+
+    if (banner && icon && title && snippet) {
+        icon.textContent = '↩';
+        title.textContent = `Replying to @${activeReplyMessage.sender}`;
+        snippet.textContent = `"${activeReplyMessage.snippet}"`;
+        banner.style.display = 'flex';
+    }
+
+    const input = document.getElementById('dm-message-input');
+    if (input) input.focus();
+}
+
+// Start editing own message
+function startEditMessage(msgId) {
+    const target = messages.find(m => m.id === msgId);
+    if (!target || !target.is_mine) return;
+
+    if (activeReplyMessage) {
+        cancelContextAction(false);
+    }
+
+    activeEditingMessage = {
+        id: target.id,
+        content: target.content
+    };
+
+    const banner = document.getElementById('dm-context-banner');
+    const icon = document.getElementById('dm-context-icon');
+    const title = document.getElementById('dm-context-title');
+    const snippet = document.getElementById('dm-context-snippet');
+
+    if (banner && icon && title && snippet) {
+        icon.textContent = '✏️';
+        title.textContent = 'Editing message';
+        snippet.textContent = `"${target.content.slice(0, 75)}"`;
+        banner.style.display = 'flex';
+    }
+
+    const input = document.getElementById('dm-message-input');
+    if (input) {
+        input.value = target.content;
+        input.focus();
+    }
+}
+
+// Cancel active reply or edit
+function cancelContextAction(clearInput = true) {
+    const wasEditing = Boolean(activeEditingMessage);
+    activeReplyMessage = null;
+    activeEditingMessage = null;
+
+    const banner = document.getElementById('dm-context-banner');
+    if (banner) banner.style.display = 'none';
+
+    if (clearInput && wasEditing) {
+        const input = document.getElementById('dm-message-input');
+        if (input) input.value = '';
+    }
+}
+
+// Smooth scroll to replied message
+function scrollToRepliedMessage(msgId) {
+    const row = document.getElementById(`dm-msg-${msgId}`);
+    if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('dm-msg-highlight');
+        setTimeout(() => row.classList.remove('dm-msg-highlight'), 1800);
+    } else {
+        showToast('Original message not found in recent history.', 'info');
+    }
+}
+
+// Drag / Swipe to reply on message bubbles
+function setupDragToReplyListeners() {
+    const wrappers = document.querySelectorAll('.dm-bubble-wrapper');
+    wrappers.forEach(wrapper => {
+        const msgId = parseInt(wrapper.getAttribute('data-id'), 10);
+        if (!msgId) return;
+
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        const icon = document.getElementById(`dm-drag-icon-${msgId}`);
+        const isMine = wrapper.closest('.dm-msg-row')?.classList.contains('mine');
+
+        function onTouchStart(e) {
+            startX = e.touches ? e.touches[0].clientX : e.clientX;
+            currentX = startX;
+            isDragging = true;
+            wrapper.style.transition = 'none';
+        }
+
+        function onTouchMove(e) {
+            if (!isDragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const diffX = clientX - startX;
+
+            // Determine drag direction towards opposite edge (theirs: swipe right > 0; mine: swipe left < 0)
+            const validDrag = isMine ? (diffX < 0) : (diffX > 0);
+            if (!validDrag) return;
+
+            const pullDist = Math.min(Math.abs(diffX), 70);
+            wrapper.style.transform = `translateX(${isMine ? -pullDist : pullDist}px)`;
+
+            if (icon) {
+                const ratio = Math.min(pullDist / 38, 1);
+                icon.style.opacity = ratio;
+                icon.style.transform = `translateY(-50%) scale(${ratio})`;
+            }
+        }
+
+        function onTouchEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            wrapper.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)';
+            wrapper.style.transform = 'translateX(0)';
+
+            if (icon) {
+                icon.style.opacity = 0;
+                icon.style.transform = 'translateY(-50%) scale(0)';
+            }
+
+            const clientX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : currentX;
+            const diffX = clientX - startX;
+            const validDrag = isMine ? (diffX < -38) : (diffX > 38);
+
+            if (validDrag) {
+                startReplyToMessage(msgId);
+            }
+        }
+
+        wrapper.addEventListener('touchstart', onTouchStart, { passive: true });
+        wrapper.addEventListener('touchmove', onTouchMove, { passive: true });
+        wrapper.addEventListener('touchend', onTouchEnd);
+        wrapper.addEventListener('touchcancel', onTouchEnd);
+    });
 }
 
 function setIcebreaker(text) {
@@ -498,7 +730,7 @@ function setIcebreaker(text) {
     }
 }
 
-// Send Direct Message
+// Send or Edit Direct Message
 async function handleSendDmMessage(e) {
     if (e) e.preventDefault();
     if (!activePartner || isSending) return;
@@ -507,33 +739,72 @@ async function handleSendDmMessage(e) {
     const content = input.value.trim();
     if (!content) return;
 
+    // IF EDITING:
+    if (activeEditingMessage) {
+        const editId = activeEditingMessage.id;
+        isSending = true;
+        try {
+            const res = await apiRequest(`/api/messages/${editId}/edit/`, {
+                method: 'PATCH',
+                body: { content }
+            });
+
+            if (res.message) {
+                const idx = messages.findIndex(m => m.id === editId);
+                if (idx !== -1) {
+                    messages[idx] = res.message;
+                }
+                showToast('Message edited successfully.', 'success');
+            }
+            cancelContextAction(true);
+            renderMessages();
+            await loadConversations(true);
+        } catch (err) {
+            showToast(err.message || 'Could not edit message.', 'error');
+        } finally {
+            isSending = false;
+        }
+        return;
+    }
+
+    // IF SENDING NEW MESSAGE (regular or reply):
     input.value = '';
     isSending = true;
+    const replyTarget = activeReplyMessage;
+    cancelContextAction(false);
 
     // Optimistic Bubble
     const optimistic = {
         id: Date.now(),
-        sender_username: 'me',
+        sender_username: window.CURRENT_USERNAME || 'me',
         recipient_username: activePartner,
         content: content,
         created_at: new Date().toISOString(),
         is_read: false,
-        is_mine: true
+        is_mine: true,
+        reply_to_id: replyTarget ? replyTarget.id : null,
+        reply_to_sender: replyTarget ? replyTarget.sender : null,
+        reply_to_content: replyTarget ? replyTarget.snippet : null,
     };
     messages.push(optimistic);
     renderMessages();
     scrollToBottom();
 
     try {
+        const payload = { content };
+        if (replyTarget) {
+            payload.reply_to_id = replyTarget.id;
+        }
         const res = await apiRequest(`/api/messages/${encodeURIComponent(activePartner)}/send/`, {
             method: 'POST',
-            body: { content }
+            body: payload
         });
 
         // Replace optimistic message with saved message
         const idx = messages.findIndex(m => m.id === optimistic.id);
         if (idx !== -1 && res.message) {
             messages[idx] = res.message;
+            renderMessages();
         }
         await loadConversations(true);
     } catch (err) {
@@ -603,4 +874,14 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function escapeJsString(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '');
 }

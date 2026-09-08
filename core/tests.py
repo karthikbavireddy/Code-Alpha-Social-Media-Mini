@@ -342,3 +342,45 @@ class ConnectSphereTests(TestCase):
         conv = next(c for c in res3.data['conversations'] if c['partner']['username'] == self.user2.username)
         self.assertIn('is_online', conv['partner'])
         self.assertIn('status_text', conv['partner'])
+
+    # 26. Message reply with quote support
+    def test_26_message_reply(self):
+        from .models import Message, Follow
+        Follow.objects.get_or_create(follower=self.user1, following=self.user2)
+        Follow.objects.get_or_create(follower=self.user2, following=self.user1)
+
+        msg1 = Message.objects.create(sender=self.user2, recipient=self.user1, content="Hello there!")
+
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.post(f'/api/messages/{self.user2.username}/send/', {
+            'content': 'Replying to your hello!',
+            'reply_to_id': msg1.id
+        }, format='json')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        data = res.data['message']
+        self.assertEqual(data['reply_to_id'], msg1.id)
+        self.assertEqual(data['reply_to_sender'], self.user2.username)
+        self.assertEqual(data['reply_to_content'], "Hello there!")
+
+    # 27. Message editing
+    def test_27_message_edit(self):
+        from .models import Message, Follow
+        Follow.objects.get_or_create(follower=self.user1, following=self.user2)
+
+        msg = Message.objects.create(sender=self.user1, recipient=self.user2, content="Original typo text")
+
+        # Edit own message
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.patch(f'/api/messages/{msg.id}/edit/', {
+            'content': 'Corrected text'
+        }, format='json')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['message']['content'], 'Corrected text')
+        self.assertTrue(res.data['message']['is_edited'])
+
+        # Attempt to edit someone else's message returns 403
+        self.client.force_authenticate(user=self.user2)
+        res2 = self.client.patch(f'/api/messages/{msg.id}/edit/', {
+            'content': 'Hacked text'
+        }, format='json')
+        self.assertEqual(res2.status_code, status.HTTP_403_FORBIDDEN)
