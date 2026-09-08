@@ -172,6 +172,184 @@ async function updateUnreadMessagesBadges() {
     }
 }
 
+// ==========================================
+// REAL-TIME NOTIFICATIONS SYSTEM
+// ==========================================
+
+let _prevUnreadNotifsCount = -1;
+
+async function updateNotificationsBadges(overrideCount = null, notifyUser = false) {
+    const desktopBadge = document.getElementById('nav-notifications-badge');
+    const mobileBadge = document.getElementById('mobile-top-notifications-badge');
+    const unreadPill = document.getElementById('notifications-unread-pill');
+
+    let count = overrideCount;
+    if (count === null) {
+        try {
+            const res = await apiRequest('/api/notifications/unread-count/');
+            count = res ? (res.unread_count || 0) : 0;
+        } catch (err) {
+            return;
+        }
+    }
+
+    [desktopBadge, mobileBadge].forEach(badge => {
+        if (!badge) return;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    });
+
+    if (unreadPill) {
+        if (count > 0) {
+            unreadPill.textContent = `${count} unread`;
+            unreadPill.style.display = 'inline-block';
+        } else {
+            unreadPill.style.display = 'none';
+        }
+    }
+
+    // Trigger toast notification if unread count increased during active session
+    if (notifyUser && _prevUnreadNotifsCount >= 0 && count > _prevUnreadNotifsCount) {
+        const diff = count - _prevUnreadNotifsCount;
+        showToast(`🔔 You have ${diff} new notification${diff > 1 ? 's' : ''}!`, 'info');
+    }
+
+    _prevUnreadNotifsCount = count;
+}
+
+function toggleNotificationsDropdown(event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const dropdown = document.getElementById('notifications-dropdown');
+    if (!dropdown) return;
+
+    const isVisible = dropdown.style.display === 'flex' || dropdown.style.display === 'block';
+    if (isVisible) {
+        dropdown.style.display = 'none';
+    } else {
+        dropdown.style.display = 'flex';
+        loadNotificationsList();
+    }
+}
+
+async function loadNotificationsList() {
+    const listContainer = document.getElementById('notifications-list');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = `
+        <div class="notifications-loading">
+            <div class="notif-spinner"></div>
+            <span>Loading notifications...</span>
+        </div>
+    `;
+
+    try {
+        const res = await apiRequest('/api/notifications/');
+        if (!res || !res.notifications || res.notifications.length === 0) {
+            listContainer.innerHTML = `
+                <div class="notifications-empty">
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    <h4>No notifications yet</h4>
+                    <p>When someone mentions you, likes, comments, or posts, you'll see it here in real time.</p>
+                </div>
+            `;
+            updateNotificationsBadges(0);
+            return;
+        }
+
+        updateNotificationsBadges(res.unread_count || 0);
+
+        const html = res.notifications.map(notif => {
+            let iconHtml = '';
+            if (notif.notification_type === 'mention') {
+                iconHtml = `<span class="notif-type-icon notif-mention">@</span>`;
+            } else if (notif.notification_type === 'like') {
+                iconHtml = `<span class="notif-type-icon notif-like"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></span>`;
+            } else if (notif.notification_type === 'comment') {
+                iconHtml = `<span class="notif-type-icon notif-comment"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></span>`;
+            } else if (notif.notification_type === 'follow') {
+                iconHtml = `<span class="notif-type-icon notif-follow"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg></span>`;
+            } else {
+                iconHtml = `<span class="notif-type-icon notif-post"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg></span>`;
+            }
+
+            const avatarHtml = renderAvatarHtml(notif.sender_avatar, notif.sender_username, 'notif-avatar');
+            const relativeTime = formatTimestamp(notif.created_at);
+            const targetUrl = notif.target_url || '#';
+            const unreadClass = notif.is_read ? '' : 'unread';
+
+            return `
+                <div class="notification-item ${unreadClass}" onclick="handleNotificationItemClick(${notif.id}, '${targetUrl}', ${notif.is_read})" data-notif-id="${notif.id}">
+                    <div class="notif-avatar-col">
+                        ${avatarHtml}
+                        ${iconHtml}
+                    </div>
+                    <div class="notif-content-col">
+                        <div class="notif-text">${escapeHtml(notif.text)}</div>
+                        <div class="notif-time">${relativeTime}</div>
+                    </div>
+                    ${!notif.is_read ? '<span class="notif-unread-dot"></span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        listContainer.innerHTML = html;
+    } catch (err) {
+        listContainer.innerHTML = `
+            <div class="notifications-error">
+                <p>Failed to load notifications.</p>
+                <button type="button" class="btn btn-sm btn-outline" onclick="loadNotificationsList()">Try again</button>
+            </div>
+        `;
+    }
+}
+
+async function handleNotificationItemClick(notifId, targetUrl, isRead) {
+    if (!isRead) {
+        try {
+            await apiRequest('/api/notifications/read/', {
+                method: 'POST',
+                body: JSON.stringify({ notification_ids: [notifId] })
+            });
+            const item = document.querySelector(`.notification-item[data-notif-id="${notifId}"]`);
+            if (item) {
+                item.classList.remove('unread');
+                const dot = item.querySelector('.notif-unread-dot');
+                if (dot) dot.remove();
+            }
+            updateNotificationsBadges();
+        } catch (e) {}
+    }
+
+    if (targetUrl && targetUrl !== '#') {
+        window.location.href = targetUrl;
+    }
+}
+
+async function markAllNotificationsRead(event) {
+    if (event) event.stopPropagation();
+
+    try {
+        await apiRequest('/api/notifications/read/', { method: 'POST', body: JSON.stringify({}) });
+        updateNotificationsBadges(0);
+
+        document.querySelectorAll('.notification-item.unread').forEach(el => {
+            el.classList.remove('unread');
+            const dot = el.querySelector('.notif-unread-dot');
+            if (dot) dot.remove();
+        });
+
+        showToast('All notifications marked as read.', 'success');
+    } catch (err) {
+        showToast('Failed to mark notifications as read.', 'error');
+    }
+}
+
 // Format @mentions and #hashtags in text as clickable links
 function formatMentions(text) {
     if (!text) return '';
@@ -434,7 +612,19 @@ function setupGlobalMentionListener() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateUnreadMessagesBadges();
+    updateNotificationsBadges(null, false);
     setupGlobalMentionListener();
+
+    // Close notifications dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('notifications-dropdown');
+        if (!dropdown || dropdown.style.display === 'none') return;
+        const btnDesktop = document.getElementById('nav-notifications-btn');
+        const btnMobile = document.getElementById('mobile-header-notifications-btn');
+        if (!dropdown.contains(e.target) && !btnDesktop?.contains(e.target) && !btnMobile?.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
 
     // Start background activity heartbeat (every 20s while tab is active)
     if (!window._heartbeatStarted) {
@@ -448,7 +638,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         'X-CSRFToken': token || '',
                         'Content-Type': 'application/json'
                     }
-                }).catch(() => {});
+                })
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data) {
+                        if (typeof data.unread_notifications_count !== 'undefined') {
+                            updateNotificationsBadges(data.unread_notifications_count, true);
+                        }
+                        if (typeof data.unread_messages_count !== 'undefined') {
+                            const desktopBadge = document.getElementById('nav-messages-badge');
+                            const mobileTopBadge = document.getElementById('mobile-top-messages-badge');
+                            const mobileBottomBadge = document.getElementById('mobile-bottom-messages-badge');
+                            const count = data.unread_messages_count;
+                            [desktopBadge, mobileTopBadge, mobileBottomBadge].forEach(badge => {
+                                if (!badge) return;
+                                if (count > 0) {
+                                    badge.textContent = count > 99 ? '99+' : count;
+                                    badge.style.display = 'inline-block';
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                            });
+                        }
+                    }
+                })
+                .catch(() => {});
             }
         }, 20000);
     }

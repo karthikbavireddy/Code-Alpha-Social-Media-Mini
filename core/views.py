@@ -1,3 +1,4 @@
+import re
 import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
@@ -17,7 +18,7 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.authtoken.models import Token
 
-from .models import Profile, Post, Comment, Follow, Message
+from .models import Profile, Post, Comment, Follow, Message, Notification
 from .serializers import (
     UserRegisterSerializer,
     PostSerializer,
@@ -25,10 +26,29 @@ from .serializers import (
     UserProfileSerializer,
     UserPublicSerializer,
     MessageSerializer,
+    NotificationSerializer,
     resolve_profile_avatar_url,
     resolve_post_image_url
 )
 from .utils import generate_optimized_data_uri
+
+
+def create_notification(recipient, sender, notification_type, text, post=None, comment=None):
+    """
+    Helper to safely create in-app notifications.
+    Prevents self-notifications (sender == recipient).
+    """
+    if not recipient or not sender or recipient.id == sender.id:
+        return None
+    return Notification.objects.create(
+        recipient=recipient,
+        sender=sender,
+        notification_type=notification_type,
+        text=text,
+        post=post,
+        comment=comment
+    )
+
 
 
 # ==========================================
@@ -577,6 +597,31 @@ def api_create_post(request):
         image_data=image_data
     )
 
+    # Trigger notifications for mentions
+    raw_mentions = set(re.findall(r'@([a-zA-Z0-9_]+)', content))
+    mentioned_users = list(User.objects.filter(username__in=raw_mentions).exclude(id=request.user.id))
+    for u in mentioned_users:
+        create_notification(
+            recipient=u,
+            sender=request.user,
+            notification_type='mention',
+            text=f"@{request.user.username} mentioned you in a post.",
+            post=post
+        )
+
+    # Trigger notifications for followers
+    mentioned_user_ids = {u.id for u in mentioned_users}
+    followers = Follow.objects.filter(following=request.user).select_related('follower')
+    for f in followers:
+        if f.follower.id != request.user.id and f.follower.id not in mentioned_user_ids:
+            create_notification(
+                recipient=f.follower,
+                sender=request.user,
+                notification_type='post',
+                text=f"@{request.user.username} shared a new post.",
+                post=post
+            )
+
     serializer = PostSerializer(post, context={'request': request})
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -675,6 +720,32 @@ def api_post_comments(request, post_id):
             text=text
         )
 
+        # Trigger notifications for mentions in comment
+        raw_mentions = set(re.findall(r'@([a-zA-Z0-9_]+)', text))
+        mentioned_users = list(User.objects.filter(username__in=raw_mentions).exclude(id=request.user.id))
+        for u in mentioned_users:
+            create_notification(
+                recipient=u,
+                sender=request.user,
+                notification_type='mention',
+                text=f"@{request.user.username} mentioned you in a comment.",
+                post=post,
+                comment=comment
+            )
+
+        # Trigger notification for post author
+        mentioned_user_ids = {u.id for u in mentioned_users}
+        if post.author.id != request.user.id and post.author.id not in mentioned_user_ids:
+            snippet = (text[:36] + '...') if len(text) > 36 else text
+            create_notification(
+                recipient=post.author,
+                sender=request.user,
+                notification_type='comment',
+                text=f'@{request.user.username} commented: "{snippet}"',
+                post=post,
+                comment=comment
+            )
+
         serializer = CommentSerializer(comment, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -702,6 +773,14 @@ def api_like_toggle(request, post_id):
     else:
         post.likes.add(request.user)
         liked = True
+        if post.author.id != request.user.id:
+            create_notification(
+                recipient=post.author,
+                sender=request.user,
+                notification_type='like',
+                text=f"@{request.user.username} liked your post.",
+                post=post
+            )
 
     return Response({
         'liked': liked,
@@ -726,6 +805,15 @@ def api_comment_like_toggle(request, comment_id):
     else:
         comment.likes.add(request.user)
         liked = True
+        if comment.author.id != request.user.id:
+            create_notification(
+                recipient=comment.author,
+                sender=request.user,
+                notification_type='like',
+                text=f"@{request.user.username} liked your comment.",
+                post=comment.post,
+                comment=comment
+            )
 
     return Response({
         'liked': liked,
@@ -766,6 +854,12 @@ def api_follow_toggle(request, username):
     else:
         Follow.objects.create(follower=request.user, following=target_user)
         following = True
+        create_notification(
+            recipient=target_user,
+            sender=request.user,
+            notification_type='follow',
+            text=f"@{request.user.username} started following you."
+        )
 
     follower_count = target_user.followers.count()
 
@@ -1234,14 +1328,77 @@ def api_unread_messages_count(request):
     return Response({'unread_count': count}, status=status.HTTP_200_OK)
 
 
+# ==========================================
+# NOTIFICATIONS API ENDPOINTS
+# ==========================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_notifications(request):
+    """
+    Get notifications for the authenticated user (top 30, newest first).
+    Returns list of notifications and total unread_count.
+    """
+    touch_user_activity(request.user)
+    notifications = Notification.objects.filter(recipient=request.user)\
+        .select_related('sender', 'sender__profile', 'post', 'comment')\
+        .order_by('-created_at')[:30]
+    unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+    serializer = NotificationSerializer(notifications, many=True, context={'request': request})
+    return Response({
+        'unread_count': unread_count,
+        'notifications': serializer.data
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_mark_notifications_read(request):
+    """
+    Mark all or specified notifications as read for current user.
+    Body can optionally contain {"notification_ids": [1, 2, ...]}
+    """
+    touch_user_activity(request.user)
+    notification_ids = request.data.get('notification_ids', None)
+    qs = Notification.objects.filter(recipient=request.user, is_read=False)
+    if notification_ids and isinstance(notification_ids, list):
+        qs = qs.filter(id__in=notification_ids)
+    updated_count = qs.update(is_read=True)
+    unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+    return Response({
+        'status': 'ok',
+        'marked_read': updated_count,
+        'unread_count': unread_count
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_unread_notifications_count(request):
+    """
+    Quick endpoint to poll unread notifications count for badges.
+    """
+    unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+    return Response({'unread_count': unread_count}, status=status.HTTP_200_OK)
+
+
 @api_view(['POST', 'GET'])
 @permission_classes([IsAuthenticated])
 def api_heartbeat(request):
     """
     Periodic heartbeat ping sent by active client tabs to keep user's profile.last_seen fresh in real-time.
+    Also returns real-time unread notifications count and unread messages count.
     """
     touch_user_activity(request.user)
-    return Response({'status': 'ok', 'active': True}, status=status.HTTP_200_OK)
+    unread_notifs = Notification.objects.filter(recipient=request.user, is_read=False).count()
+    unread_msgs = Message.objects.filter(recipient=request.user, is_read=False).count()
+    return Response({
+        'status': 'ok',
+        'active': True,
+        'unread_notifications_count': unread_notifs,
+        'unread_messages_count': unread_msgs
+    }, status=status.HTTP_200_OK)
+
 
 
 

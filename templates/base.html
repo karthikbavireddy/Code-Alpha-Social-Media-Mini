@@ -17,7 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.7">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.8">
     <link rel="stylesheet" href="{% static 'libs/cropper/cropper.min.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
@@ -62,6 +62,13 @@
                                 <span class="nav-badge" id="nav-messages-badge" style="display: none;">0</span>
                             </a>
                         </li>
+                        <li class="notifications-nav-wrap">
+                            <button type="button" class="nav-item notifications-btn" id="nav-notifications-btn" onclick="toggleNotificationsDropdown(event)" aria-label="Notifications" style="background: transparent; border: none; cursor: pointer; position: relative;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                <span>Notifications</span>
+                                <span class="nav-badge" id="nav-notifications-badge" style="display: none;">0</span>
+                            </button>
+                        </li>
                         <li>
                             <a href="{% url 'profile_page' user.username %}" class="nav-item {% if request.resolver_match.url_name == 'profile_page' and request.resolver_match.kwargs.username == user.username %}active{% endif %}" id="nav-profile">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
@@ -97,6 +104,10 @@
                 <a href="{% url 'explore_page' %}" class="mobile-header-btn" title="Explore" aria-label="Explore">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
                 </a>
+                <button type="button" class="mobile-header-btn" id="mobile-header-notifications-btn" onclick="toggleNotificationsDropdown(event)" title="Notifications" aria-label="Notifications" style="position: relative; background: transparent; border: none; cursor: pointer;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    <span class="nav-badge mobile-badge" id="mobile-top-notifications-badge" style="display: none;">0</span>
+                </button>
                 <a href="{% url 'messages_page' %}" class="mobile-header-btn" title="Messages" aria-label="Messages" style="position: relative;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                     <span class="nav-badge mobile-badge" id="mobile-top-messages-badge" style="display: none;">0</span>
@@ -106,6 +117,22 @@
                         {{ user.username|first|upper }}
                     </div>
                 </a>
+            </div>
+
+            <!-- Notifications Dropdown Panel -->
+            <div class="notifications-dropdown" id="notifications-dropdown" style="display: none;">
+                <div class="notifications-dropdown-header">
+                    <div class="notifications-dropdown-title">
+                        <h4>Notifications</h4>
+                        <span class="notifications-unread-pill" id="notifications-unread-pill" style="display: none;">0 unread</span>
+                    </div>
+                    <button type="button" class="notif-mark-read-btn" onclick="markAllNotificationsRead(event)" title="Mark all as read">
+                        Mark all read
+                    </button>
+                </div>
+                <div class="notifications-list" id="notifications-list">
+                    <div class="notifications-empty">Loading notifications...</div>
+                </div>
             </div>
             {% endif %}
         </div>
@@ -235,8 +262,8 @@
 
     <!-- Common JavaScript -->
     <script src="{% static 'libs/cropper/cropper.min.js' %}"></script>
-    <script src="{% static 'js/common.js' %}?v=2.7"></script>
-    <script src="{% static 'js/image_editor.js' %}?v=2.7"></script>
+    <script src="{% static 'js/common.js' %}?v=2.8"></script>
+    <script src="{% static 'js/image_editor.js' %}?v=2.8"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

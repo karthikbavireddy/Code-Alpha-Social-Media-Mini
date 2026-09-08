@@ -221,3 +221,56 @@ class Message(models.Model):
         snippet = (self.content[:25] + "...") if len(self.content) > 25 else self.content
         return f"Msg from @{self.sender.username} to @{self.recipient.username}: {snippet}"
 
+
+class Notification(models.Model):
+    """
+    In-app notifications for mentions, new posts from followed creators, likes, comments, and follows.
+    """
+    NOTIFICATION_TYPES = (
+        ('mention', 'Mention'),
+        ('post', 'New Post'),
+        ('like', 'Like'),
+        ('comment', 'Comment'),
+        ('follow', 'Follow'),
+    )
+
+    recipient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications"
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_notifications"
+    )
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="notifications"
+    )
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="notifications"
+    )
+    text = models.CharField(max_length=255)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["recipient", "is_read"]),
+            models.Index(fields=["recipient", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"Notification for @{self.recipient.username} from @{self.sender.username} ({self.notification_type})"
+
+

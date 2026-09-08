@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Profile, Post, Comment, Follow, Message
+from .models import Profile, Post, Comment, Follow, Message, Notification
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -307,4 +307,28 @@ class MessageSerializer(serializers.ModelSerializer):
         if obj.reply_to:
             return obj.reply_to.content
         return None
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    sender_username = serializers.CharField(source='sender.username', read_only=True)
+    sender_avatar = serializers.SerializerMethodField()
+    target_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'sender_username', 'sender_avatar',
+            'notification_type', 'text', 'is_read', 'created_at',
+            'post_id', 'comment_id', 'target_url'
+        ]
+
+    def get_sender_avatar(self, obj):
+        return resolve_profile_avatar_url(obj.sender, self.context.get('request'))
+
+    def get_target_url(self, obj):
+        if obj.post_id:
+            return f"/posts/{obj.post_id}/"
+        if obj.notification_type == 'follow':
+            return f"/profile/{obj.sender.username}/"
+        return "/"
 

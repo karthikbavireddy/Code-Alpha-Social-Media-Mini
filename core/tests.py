@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Profile, Post, Comment, Follow
+from .models import Profile, Post, Comment, Follow, Notification
 
 
 class ConnectSphereTests(TestCase):
@@ -402,3 +402,78 @@ class ConnectSphereTests(TestCase):
         self.assertIn('users', res_all.data)
         self.assertIn('posts', res_all.data)
         self.assertGreaterEqual(len(res_all.data['posts']), 1)
+
+    # 29. Notifications trigger on follow, mention, like, comment, and follower posts
+    def test_29_notifications_triggers(self):
+        # 1. Follow trigger
+        self.client.force_authenticate(user=self.user2)
+        follow_res = self.client.post(f'/api/users/{self.user1.username}/follow/')
+        self.assertEqual(follow_res.status_code, status.HTTP_200_OK)
+        follow_notif = Notification.objects.filter(recipient=self.user1, notification_type='follow').first()
+        self.assertIsNotNone(follow_notif)
+        self.assertEqual(follow_notif.sender, self.user2)
+
+        # 2. Follower new post trigger
+        # user2 is following user1. Now user1 creates a post.
+        self.client.force_authenticate(user=self.user1)
+        post_res = self.client.post('/api/posts/create/', {
+            'content': 'Hey check out my new update!'
+        }, format='json')
+        self.assertEqual(post_res.status_code, status.HTTP_201_CREATED)
+        post_id = post_res.data['id']
+        post_notif = Notification.objects.filter(recipient=self.user2, notification_type='post', post_id=post_id).first()
+        self.assertIsNotNone(post_notif)
+
+        # 3. Mention in post trigger
+        user3 = User.objects.create_user(username="user_three", password="Password123!")
+        self.client.force_authenticate(user=self.user1)
+        mention_res = self.client.post('/api/posts/create/', {
+            'content': 'Shoutout to @user_three and welcome!'
+        }, format='json')
+        self.assertEqual(mention_res.status_code, status.HTTP_201_CREATED)
+        mention_notif = Notification.objects.filter(recipient=user3, notification_type='mention').first()
+        self.assertIsNotNone(mention_notif)
+
+        # 4. Like post trigger
+        self.client.force_authenticate(user=self.user2)
+        like_res = self.client.post(f'/api/posts/{self.post1.id}/like/')
+        self.assertEqual(like_res.status_code, status.HTTP_200_OK)
+        like_notif = Notification.objects.filter(recipient=self.user1, notification_type='like', post=self.post1).first()
+        self.assertIsNotNone(like_notif)
+
+        # 5. Comment with mention trigger
+        comment_res = self.client.post(f'/api/posts/{self.post1.id}/comments/', {
+            'text': 'Great post! @user_three check this!'
+        }, format='json')
+        self.assertEqual(comment_res.status_code, status.HTTP_201_CREATED)
+        # user1 (post author) gets comment notification
+        author_comment_notif = Notification.objects.filter(recipient=self.user1, notification_type='comment').first()
+        self.assertIsNotNone(author_comment_notif)
+        # user3 gets mention notification
+        comment_mention_notif = Notification.objects.filter(recipient=user3, notification_type='mention', comment__isnull=False).first()
+        self.assertIsNotNone(comment_mention_notif)
+
+    # 30. Notifications API endpoints (list, unread-count, mark-read)
+    def test_30_notification_apis(self):
+        Notification.objects.create(recipient=self.user1, sender=self.user2, notification_type='follow', text='Started following you')
+        Notification.objects.create(recipient=self.user1, sender=self.user2, notification_type='like', text='Liked your post')
+
+        self.client.force_authenticate(user=self.user1)
+
+        # Check unread count
+        count_res = self.client.get('/api/notifications/unread-count/')
+        self.assertEqual(count_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(count_res.data['unread_count'], 2)
+
+        # Fetch notifications list
+        list_res = self.client.get('/api/notifications/')
+        self.assertEqual(list_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_res.data['unread_count'], 2)
+        self.assertEqual(len(list_res.data['notifications']), 2)
+
+        # Mark all as read
+        read_res = self.client.post('/api/notifications/read/', {}, format='json')
+        self.assertEqual(read_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(read_res.data['unread_count'], 0)
+        self.assertEqual(Notification.objects.filter(recipient=self.user1, is_read=False).count(), 0)
+
