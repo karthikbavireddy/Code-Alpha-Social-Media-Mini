@@ -364,6 +364,8 @@ async function toggleLike(postId) {
     }
 }
 
+let activeCroppedAvatarFile = null;
+
 // Setup edit profile modal
 function setupEditProfileModal() {
     const fileInput = document.getElementById('edit-avatar-input');
@@ -377,6 +379,15 @@ function setupEditProfileModal() {
                 reader.onload = (e) => {
                     previewImg.src = e.target.result;
                     previewImg.style.display = 'block';
+
+                    // Launch Image Studio with 1:1 Square aspect ratio for profile avatar
+                    openImageEditor(e.target.result, {
+                        title: 'Crop & Frame Profile Picture',
+                        aspectRatio: 1
+                    }, (res) => {
+                        activeCroppedAvatarFile = res.file;
+                        previewImg.src = res.dataUrl;
+                    });
                 };
                 reader.readAsDataURL(file);
             }
@@ -402,6 +413,7 @@ function openEditProfileModal() {
 function closeEditProfileModal() {
     const modal = document.getElementById('edit-profile-modal');
     if (modal) modal.classList.remove('active');
+    activeCroppedAvatarFile = null;
 }
 
 async function saveProfileChanges() {
@@ -412,7 +424,9 @@ async function saveProfileChanges() {
 
     const formData = new FormData();
     if (bioInput) formData.append('bio', bioInput.value.trim());
-    if (fileInput && fileInput.files[0]) {
+    if (activeCroppedAvatarFile) {
+        formData.append('profile_picture', activeCroppedAvatarFile);
+    } else if (fileInput && fileInput.files[0]) {
         formData.append('profile_picture', fileInput.files[0]);
     }
 

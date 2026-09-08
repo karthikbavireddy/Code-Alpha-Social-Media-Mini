@@ -69,11 +69,19 @@
             <div class="composer-preview-wrap" id="composer-preview-wrap">
                 <img id="composer-preview-img" src="" alt="Image preview" class="composer-preview-img fit-contain">
                 <div class="composer-remove-preview" id="composer-remove-preview" title="Remove attachment">&times;</div>
+                <button type="button" class="composer-edit-overlay-btn" id="btn-crop-overlay" title="Open Crop & Edit Studio">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2v14a2 2 0 0 0 2 2h14"></path><path d="M18 22V8a2 2 0 0 0-2-2H2"></path></svg>
+                    <span>Crop / Edit</span>
+                </button>
                 <div class="composer-adjust-toolbar" id="composer-adjust-toolbar">
                     <span class="adjust-toolbar-label">Adjust:</span>
                     <button type="button" class="adjust-btn active" id="btn-fit-contain" title="Show full photo without cropping">Fit Full</button>
                     <button type="button" class="adjust-btn" id="btn-fit-top" title="Focus top / face">Top / Face</button>
                     <button type="button" class="adjust-btn" id="btn-fit-center" title="Center fill">Center</button>
+                    <button type="button" class="adjust-btn adjust-btn-highlight" id="btn-open-cropper" title="Interactive Crop, Rotate & Filters">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2v14a2 2 0 0 0 2 2h14"></path><path d="M18 22V8a2 2 0 0 0-2-2H2"></path></svg>
+                        <span>Crop & Edit</span>
+                    </button>
                 </div>
             </div>
 

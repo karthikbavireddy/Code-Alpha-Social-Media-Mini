@@ -129,14 +129,38 @@ function setupPostComposer() {
     if (btnFitTop) btnFitTop.addEventListener('click', () => setAdjustMode('top'));
     if (btnFitCenter) btnFitCenter.addEventListener('click', () => setAdjustMode('center'));
 
+    let activeCroppedFile = null;
+    let rawImageSrc = null;
+
+    function launchCropperForPost() {
+        const srcToCrop = previewImg.src || rawImageSrc;
+        if (!srcToCrop) return;
+        openImageEditor(srcToCrop, {
+            title: 'Crop & Enhance Post Photo',
+            aspectRatio: 'free'
+        }, (result) => {
+            activeCroppedFile = result.file;
+            previewImg.src = result.dataUrl;
+            setAdjustMode('contain');
+            showToast('Photo cropped and updated!', 'success');
+        });
+    }
+
+    const btnOpenCropper = document.getElementById('btn-open-cropper');
+    const btnCropOverlay = document.getElementById('btn-crop-overlay');
+    if (btnOpenCropper) btnOpenCropper.addEventListener('click', launchCropperForPost);
+    if (btnCropOverlay) btnCropOverlay.addEventListener('click', launchCropperForPost);
+
     // Handle file selection preview
     if (fileInput) {
         fileInput.addEventListener('change', () => {
             const file = fileInput.files[0];
             if (file) {
+                activeCroppedFile = null;
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    previewImg.src = e.target.result;
+                    rawImageSrc = e.target.result;
+                    previewImg.src = rawImageSrc;
                     setAdjustMode('contain'); // Default to full fit so head/face is never cropped
                     previewWrap.style.display = 'block';
                 };
@@ -150,6 +174,8 @@ function setupPostComposer() {
         removePreviewBtn.addEventListener('click', () => {
             fileInput.value = '';
             previewImg.src = '';
+            activeCroppedFile = null;
+            rawImageSrc = null;
             setAdjustMode('contain');
             previewWrap.style.display = 'none';
         });
@@ -165,7 +191,9 @@ function setupPostComposer() {
 
         const formData = new FormData();
         formData.append('content', content);
-        if (fileInput && fileInput.files[0]) {
+        if (activeCroppedFile) {
+            formData.append('image', activeCroppedFile);
+        } else if (fileInput && fileInput.files[0]) {
             formData.append('image', fileInput.files[0]);
         }
 
@@ -181,6 +209,8 @@ function setupPostComposer() {
             showToast('Post shared to your sphere!', 'success');
             textarea.value = '';
             if (fileInput) fileInput.value = '';
+            activeCroppedFile = null;
+            rawImageSrc = null;
             if (previewWrap) previewWrap.style.display = 'none';
 
             // Prepend new post to feed

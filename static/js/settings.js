@@ -194,6 +194,15 @@ function previewNewAvatar(e) {
             preview.style.display = 'block';
         }
         if (fallback) fallback.style.display = 'none';
+
+        // Launch Image Studio with 1:1 Square aspect ratio for profile avatar
+        openImageEditor(event.target.result, {
+            title: 'Crop & Frame Profile Picture',
+            aspectRatio: 1
+        }, (res) => {
+            selectedAvatarFile = res.file;
+            if (preview) preview.src = res.dataUrl;
+        });
     };
     reader.readAsDataURL(file);
 }

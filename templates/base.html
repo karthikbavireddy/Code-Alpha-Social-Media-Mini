@@ -18,6 +18,7 @@
 
     <!-- CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'libs/cropper/cropper.min.css' %}">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -145,8 +146,97 @@
     <!-- Global Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
+    <!-- Universal Image Studio / Crop & Edit Modal -->
+    <div class="modal-overlay image-editor-modal" id="image-editor-modal">
+        <div class="modal-card image-editor-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 2v14a2 2 0 0 0 2 2h14"></path>
+                        <path d="M18 22V8a2 2 0 0 0-2-2H2"></path>
+                    </svg>
+                    <h2 class="modal-title" id="image-editor-title">Edit & Crop Image</h2>
+                </div>
+                <button type="button" class="modal-close" onclick="closeImageEditor()">&times;</button>
+            </div>
+
+            <div class="image-editor-body">
+                <!-- Cropper Canvas Container -->
+                <div class="cropper-container-wrapper">
+                    <img id="image-editor-target" src="" alt="Edit target">
+                </div>
+
+                <!-- Editor Controls & Toolbars -->
+                <div class="image-editor-controls">
+                    <!-- Aspect Ratio Presets -->
+                    <div class="editor-control-group">
+                        <span class="control-group-title">Aspect Ratio</span>
+                        <div class="aspect-ratio-buttons" id="aspect-ratio-buttons">
+                            <button type="button" class="ratio-btn active" data-ratio="free">Free</button>
+                            <button type="button" class="ratio-btn" data-ratio="1">1:1 Square</button>
+                            <button type="button" class="ratio-btn" data-ratio="0.8">4:5 Portrait</button>
+                            <button type="button" class="ratio-btn" data-ratio="1.77777777778">16:9 Wide</button>
+                            <button type="button" class="ratio-btn" data-ratio="0.5625">9:16 Story</button>
+                        </div>
+                    </div>
+
+                    <!-- Transform Tools (Rotate, Flip, Zoom) -->
+                    <div class="editor-control-group">
+                        <span class="control-group-title">Transform</span>
+                        <div class="transform-buttons">
+                            <button type="button" class="editor-tool-btn" id="editor-rotate-left" title="Rotate Left 90°">
+                                <span>⟲</span> 90° Left
+                            </button>
+                            <button type="button" class="editor-tool-btn" id="editor-rotate-right" title="Rotate Right 90°">
+                                <span>⟳</span> 90° Right
+                            </button>
+                            <button type="button" class="editor-tool-btn" id="editor-flip-h" title="Flip Horizontal">
+                                <span>⇄</span> Flip H
+                            </button>
+                            <button type="button" class="editor-tool-btn" id="editor-flip-v" title="Flip Vertical">
+                                <span>⇅</span> Flip V
+                            </button>
+                            <button type="button" class="editor-tool-btn" id="editor-zoom-in" title="Zoom In">
+                                <span>＋</span> Zoom In
+                            </button>
+                            <button type="button" class="editor-tool-btn" id="editor-zoom-out" title="Zoom Out">
+                                <span>－</span> Zoom Out
+                            </button>
+                            <button type="button" class="editor-tool-btn" id="editor-reset" title="Reset All">
+                                <span>↺</span> Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter / Adjustment Presets -->
+                    <div class="editor-control-group">
+                        <span class="control-group-title">Filters & Tones</span>
+                        <div class="filter-preset-buttons" id="filter-preset-buttons">
+                            <button type="button" class="filter-preset-btn active" data-filter="normal">Normal</button>
+                            <button type="button" class="filter-preset-btn" data-filter="vivid">Vivid</button>
+                            <button type="button" class="filter-preset-btn" data-filter="warm">Warm</button>
+                            <button type="button" class="filter-preset-btn" data-filter="cool">Cool</button>
+                            <button type="button" class="filter-preset-btn" data-filter="bw">B & W</button>
+                            <button type="button" class="filter-preset-btn" data-filter="vintage">Vintage</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer image-editor-footer">
+                <button type="button" class="btn btn-outline" onclick="closeImageEditor()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="image-editor-apply-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>Apply & Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Common JavaScript -->
+    <script src="{% static 'libs/cropper/cropper.min.js' %}"></script>
     <script src="{% static 'js/common.js' %}"></script>
+    <script src="{% static 'js/image_editor.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>
