@@ -37,6 +37,7 @@ urlpatterns = [
 
     # Comments
     path('api/posts/<int:post_id>/comments/', views.api_post_comments, name='api_post_comments'),
+    path('api/comments/<int:comment_id>/like/', views.api_comment_like_toggle, name='api_comment_like_toggle'),
 
     # Like toggle
     path('api/posts/<int:post_id>/like/', views.api_like_toggle, name='api_like_toggle'),

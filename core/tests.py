@@ -258,3 +258,52 @@ class ConnectSphereTests(TestCase):
         self.assertIn('Security Alert', mail.outbox[0].subject)
         self.assertEqual(mail.outbox[0].to, ['user1@example.com'])
         self.assertIn('user_one', mail.outbox[0].body)
+
+    # 23. Comment like toggle
+    def test_23_comment_like_toggle(self):
+        comment = Comment.objects.create(
+            post=self.post1,
+            author=self.user2,
+            text="Hello @user_one, check this out!"
+        )
+
+        # Unauthenticated cannot like comment
+        res_unauth = self.client.post(f'/api/comments/{comment.id}/like/')
+        self.assertEqual(res_unauth.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Authenticated user1 likes comment
+        self.client.force_authenticate(user=self.user1)
+        res_like = self.client.post(f'/api/comments/{comment.id}/like/')
+        self.assertEqual(res_like.status_code, status.HTTP_200_OK)
+        self.assertTrue(res_like.data['liked'])
+        self.assertEqual(res_like.data['like_count'], 1)
+
+        # Authenticated user1 unlikes comment
+        res_unlike = self.client.post(f'/api/comments/{comment.id}/like/')
+        self.assertEqual(res_unlike.status_code, status.HTTP_200_OK)
+        self.assertFalse(res_unlike.data['liked'])
+        self.assertEqual(res_unlike.data['like_count'], 0)
+
+    # 24. Comment serialization includes like_count and liked_by_current_user
+    def test_24_comment_serialization_likes(self):
+        comment = Comment.objects.create(
+            post=self.post1,
+            author=self.user2,
+            text="Testing serialization with @user_one"
+        )
+        comment.likes.add(self.user1)
+
+        # When fetched by user1 (who liked it)
+        self.client.force_authenticate(user=self.user1)
+        res = self.client.get(f'/api/posts/{self.post1.id}/comments/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        target = next(c for c in res.data if c['id'] == comment.id)
+        self.assertEqual(target['like_count'], 1)
+        self.assertTrue(target['liked_by_current_user'])
+
+        # When fetched by user2 (who did not like it)
+        self.client.force_authenticate(user=self.user2)
+        res2 = self.client.get(f'/api/posts/{self.post1.id}/comments/')
+        target2 = next(c for c in res2.data if c['id'] == comment.id)
+        self.assertEqual(target2['like_count'], 1)
+        self.assertFalse(target2['liked_by_current_user'])

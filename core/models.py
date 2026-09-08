@@ -112,6 +112,11 @@ class Comment(models.Model):
     )
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    likes = models.ManyToManyField(
+        User,
+        related_name="liked_comments",
+        blank=True
+    )
 
     class Meta:
         ordering = ["created_at"]
@@ -122,6 +127,10 @@ class Comment(models.Model):
     def __str__(self):
         snippet = (self.text[:30] + "...") if len(self.text) > 30 else self.text
         return f"Comment by @{self.author.username} on Post #{self.post.id}: {snippet}"
+
+    @property
+    def like_count(self):
+        return self.likes.count()
 
 
 class Follow(models.Model):

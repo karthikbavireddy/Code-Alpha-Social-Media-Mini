@@ -709,6 +709,30 @@ def api_like_toggle(request, post_id):
     }, status=status.HTTP_200_OK)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_comment_like_toggle(request, comment_id):
+    """
+    Toggle like status on a comment for the authenticated user:
+    - If user already liked the comment: remove like.
+    - If user has not liked: add like.
+    Returns: {"liked": bool, "like_count": int}
+    """
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    if comment.likes.filter(id=request.user.id).exists():
+        comment.likes.remove(request.user)
+        liked = False
+    else:
+        comment.likes.add(request.user)
+        liked = True
+
+    return Response({
+        'liked': liked,
+        'like_count': comment.likes.count()
+    }, status=status.HTTP_200_OK)
+
+
 # ==========================================
 # FOLLOW / UNFOLLOW SYSTEM
 # ==========================================

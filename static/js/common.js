@@ -172,6 +172,56 @@ async function updateUnreadMessagesBadges() {
     }
 }
 
+// Format @mentions in text as clickable profile links
+function formatMentions(text) {
+    if (!text) return '';
+    return text.replace(/(^|[^a-zA-Z0-9_])@([a-zA-Z0-9_]{3,30})/g, '$1<a href="/profile/$2/" class="mention-tag" onclick="event.stopPropagation()">@$2</a>');
+}
+
+// Toggle like on a comment
+async function toggleCommentLike(commentId) {
+    const btn = document.getElementById(`comment-like-btn-${commentId}`);
+    const countSpan = document.getElementById(`comment-like-count-${commentId}`);
+    if (!btn) return;
+
+    btn.disabled = true;
+    try {
+        const data = await apiRequest(`/api/comments/${commentId}/like/`, { method: 'POST' });
+        const svg = btn.querySelector('svg');
+        if (data.liked) {
+            btn.classList.add('liked');
+            if (svg) svg.setAttribute('fill', '#f43f5e');
+        } else {
+            btn.classList.remove('liked');
+            if (svg) svg.setAttribute('fill', 'none');
+        }
+        if (countSpan) {
+            countSpan.textContent = data.like_count > 0 ? data.like_count : '';
+        }
+    } catch (err) {
+        if (err.status === 401) {
+            showToast('Please log in to like comments.', 'info');
+            setTimeout(() => { window.location.href = '/login/'; }, 600);
+        } else {
+            showToast(err.message || 'Could not like comment.', 'error');
+        }
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Insert mention into the target comment input box
+function mentionUserInComment(username, postId) {
+    const input = document.getElementById(`comment-input-${postId}`) || document.getElementById('new-comment-text');
+    if (!input) return;
+    const mentionTag = `@${username} `;
+    if (!input.value.includes(mentionTag)) {
+        input.value = mentionTag + input.value;
+    }
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateUnreadMessagesBadges();
 });

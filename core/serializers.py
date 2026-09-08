@@ -101,14 +101,31 @@ class CommentSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     author_id = serializers.ReadOnlyField(source='author.id')
     author_profile_picture = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
+    liked_by_current_user = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'post', 'author', 'author_id', 'author_profile_picture', 'text', 'created_at']
-        read_only_fields = ['id', 'author', 'author_id', 'author_profile_picture', 'created_at']
+        fields = [
+            'id', 'post', 'author', 'author_id', 'author_profile_picture',
+            'text', 'created_at', 'like_count', 'liked_by_current_user'
+        ]
+        read_only_fields = [
+            'id', 'author', 'author_id', 'author_profile_picture',
+            'created_at', 'like_count', 'liked_by_current_user'
+        ]
 
     def get_author_profile_picture(self, obj):
         return resolve_profile_avatar_url(obj.author, self.context.get('request'))
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_liked_by_current_user(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
 
 
 class PostSerializer(serializers.ModelSerializer):

@@ -337,7 +337,7 @@ function createPostCardElement(post) {
             ${authorActionsHtml}
         </div>
 
-        <div class="post-content" id="post-content-${post.id}">${escapeHtml(post.content)}</div>
+        <div class="post-content" id="post-content-${post.id}">${formatMentions(escapeHtml(post.content))}</div>
         ${mediaHtml}
 
         <div class="post-footer">
@@ -480,21 +480,41 @@ async function submitComment(postId) {
     }
 }
 
-// Create single comment DOM element
+// Create single comment DOM element with like button and reply mention
 function createCommentElement(comment) {
     const div = document.createElement('div');
     div.className = 'comment-item';
+    div.id = `comment-${comment.id}`;
 
     const avatarHtml = renderAvatarHtml(comment.author_profile_picture, comment.author, 'comment-avatar');
+    const isLiked = !!comment.liked_by_current_user;
+    const likeCount = comment.like_count || 0;
 
     div.innerHTML = `
         <a href="/profile/${comment.author}/">${avatarHtml}</a>
         <div class="comment-body">
             <div class="comment-header">
-                <a href="/profile/${comment.author}/" class="comment-author">@${comment.author}</a>
-                <span class="comment-date">${formatTimestamp(comment.created_at)}</span>
+                <div class="comment-header-left">
+                    <a href="/profile/${comment.author}/" class="comment-author">@${comment.author}</a>
+                    <span class="comment-date">${formatTimestamp(comment.created_at)}</span>
+                </div>
+                <button class="comment-like-btn ${isLiked ? 'liked' : ''}" 
+                        id="comment-like-btn-${comment.id}" 
+                        onclick="toggleCommentLike(${comment.id})" 
+                        title="${isLiked ? 'Unlike' : 'Like'} comment">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="${isLiked ? '#f43f5e' : 'none'}" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span class="comment-like-count" id="comment-like-count-${comment.id}">${likeCount > 0 ? likeCount : ''}</span>
+                </button>
             </div>
-            <div class="comment-text">${escapeHtml(comment.text)}</div>
+            <div class="comment-text">${formatMentions(escapeHtml(comment.text))}</div>
+            <div class="comment-actions-bar">
+                <button type="button" class="comment-reply-action" onclick="mentionUserInComment('${comment.author}', ${comment.post})" title="Reply to @${comment.author}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+                    <span>Reply</span>
+                </button>
+            </div>
         </div>
     `;
     return div;
