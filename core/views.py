@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -69,6 +69,13 @@ def messages_page_view(request, username=None):
     if not request.user.is_authenticated:
         return redirect('login_page')
     return render(request, 'messages.html', {'target_username': username or ''})
+
+
+def settings_view(request):
+    """Render the User Settings & Account Management page."""
+    if not request.user.is_authenticated:
+        return redirect('login_page')
+    return render(request, 'settings.html')
 
 
 # ==========================================
@@ -246,6 +253,106 @@ def api_update_profile(request):
             'profile_picture': avatar_url
         }
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_change_password(request):
+    """
+    Securely change user password after validating current password.
+    """
+    user = request.user
+    current_password = request.data.get('current_password', '')
+    new_password = request.data.get('new_password', '')
+    confirm_password = request.data.get('confirm_password', '')
+
+    if not current_password or not new_password or not confirm_password:
+        return Response({'error': 'All password fields are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(current_password):
+        return Response({'error': 'Incorrect current password.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_password != confirm_password:
+        return Response({'error': 'New passwords do not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if len(new_password) < 6:
+        return Response({'error': 'New password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    update_session_auth_hash(request, user)  # Prevent session invalidation
+
+    # Refresh auth token
+    Token.objects.filter(user=user).delete()
+    token = Token.objects.create(user=user)
+
+    return Response({
+        'message': 'Password changed successfully.',
+        'token': token.key
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def api_update_account(request):
+    """
+    Update username and/or email address for the user.
+    """
+    user = request.user
+    new_username = request.data.get('username', '').strip()
+    new_email = request.data.get('email', '').strip()
+
+    if not new_username:
+        return Response({'error': 'Username cannot be empty.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if len(new_username) < 3:
+        return Response({'error': 'Username must be at least 3 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Verify uniqueness
+    if User.objects.filter(username__iexact=new_username).exclude(id=user.id).exists():
+        return Response({'error': 'This username is already taken. Please choose another.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_email:
+        if '@' not in new_email:
+            return Response({'error': 'Please enter a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email__iexact=new_email).exclude(id=user.id).exists():
+            return Response({'error': 'This email is already in use by another account.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.email = new_email
+
+    user.username = new_username
+    user.save()
+
+    return Response({
+        'message': 'Account settings updated successfully.',
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email
+        }
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_delete_account(request):
+    """
+    Permanently delete the user account after password verification.
+    """
+    user = request.user
+    confirm_password = request.data.get('password', '')
+
+    if not confirm_password:
+        return Response({'error': 'Please enter your password to confirm account deletion.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not user.check_password(confirm_password):
+        return Response({'error': 'Incorrect password. Account was not deleted.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    username = user.username
+    logout(request)
+    user.delete()
+
+    return Response({'message': f'Account @{username} has been permanently deleted.'}, status=status.HTTP_200_OK)
+
 
 
 # ==========================================

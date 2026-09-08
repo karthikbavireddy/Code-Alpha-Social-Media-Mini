@@ -11,6 +11,7 @@ urlpatterns = [
     path('explore/', views.explore_view, name='explore_page'),
     path('messages/', views.messages_page_view, name='messages_page'),
     path('messages/<str:username>/', views.messages_page_view, name='messages_with_user_page'),
+    path('settings/', views.settings_view, name='settings_page'),
 
     # REST API Endpoints
     # Auth
@@ -18,6 +19,11 @@ urlpatterns = [
     path('api/login/', views.api_login, name='api_login'),
     path('api/logout/', views.api_logout, name='api_logout'),
     path('api/me/', views.api_me, name='api_me'),
+
+    # Settings & Account
+    path('api/settings/change-password/', views.api_change_password, name='api_change_password'),
+    path('api/settings/account/', views.api_update_account, name='api_update_account'),
+    path('api/settings/delete-account/', views.api_delete_account, name='api_delete_account'),
 
     # Profile
     path('api/users/<str:username>/', views.api_user_detail, name='api_user_detail'),

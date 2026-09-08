@@ -116,9 +116,12 @@ export const api = {
   logout: () => api.post('/logout/', {}),
   getMe: () => api.get('/me/'),
 
-  // Profiles
+  // Profiles & Settings
   getUserProfile: (username) => api.get(`/users/${encodeURIComponent(username)}/`),
   updateProfile: (formData) => api.put('/profile/', formData),
+  changePassword: (data) => api.post('/settings/change-password/', data),
+  updateAccount: (data) => api.put('/settings/account/', data),
+  deleteAccount: (data) => api.post('/settings/delete-account/', data),
 
   // Posts
   getFeed: () => api.get('/feed/'),

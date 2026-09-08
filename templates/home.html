@@ -31,8 +31,11 @@
             <a href="{% url 'explore_page' %}" class="btn btn-outline btn-block" style="justify-content: flex-start; margin-bottom: 0.5rem;">
                 🔍 Find People
             </a>
-            <a href="{% url 'profile_page' user.username %}" class="btn btn-outline btn-block" style="justify-content: flex-start;">
+            <a href="{% url 'profile_page' user.username %}" class="btn btn-outline btn-block" style="justify-content: flex-start; margin-bottom: 0.5rem;">
                 👤 View Full Profile
+            </a>
+            <a href="{% url 'settings_page' %}" class="btn btn-outline btn-block" style="justify-content: flex-start;">
+                ⚙️ Account Settings
             </a>
         </div>
     </aside>

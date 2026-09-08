@@ -85,6 +85,9 @@ function renderProfileHeader(data) {
                 <button class="btn btn-outline" onclick="openEditProfileModal()">
                     ✏️ Edit Profile
                 </button>
+                <a href="/settings/" class="btn btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                    ⚙️ Settings
+                </a>
             `;
         } else if (currentUser) {
             const isFollowing = data.is_following;

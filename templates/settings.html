@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Settings — ConnectSphere{% endblock %}
+
+{% block content %}
+<div class="dm-page-container" style="max-width: 960px;">
+    <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg); background: var(--bg-surface); border: 1px solid var(--border-color);">
+        
+        <!-- Settings Header -->
+        <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--border-color); background: rgba(11, 15, 25, 0.7); display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <h1 style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem;">
+                    <span>⚙️</span> Account Settings
+                </h1>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    Manage your security, password, profile, and preferences
+                </p>
+            </div>
+            <a href="{% url 'profile_page' user.username %}" class="btn btn-outline btn-sm" style="font-size: 0.82rem;">
+                View My Profile
+            </a>
+        </div>
+
+        <div class="settings-layout" style="display: grid; grid-template-columns: 240px 1fr; min-height: 520px;">
+            <!-- Left Tab Navigation -->
+            <aside style="border-right: 1px solid var(--border-color); background: rgba(11, 15, 25, 0.4); padding: 1rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                    <button type="button" class="settings-nav-btn active" id="snav-password" onclick="switchSettingsSection('password')">
+                        <span style="font-size: 1.1rem;">🔒</span> Change Password
+                    </button>
+                    <button type="button" class="settings-nav-btn" id="snav-account" onclick="switchSettingsSection('account')">
+                        <span style="font-size: 1.1rem;">👤</span> Account & Email
+                    </button>
+                    <button type="button" class="settings-nav-btn" id="snav-profile" onclick="switchSettingsSection('profile')">
+                        <span style="font-size: 1.1rem;">🎨</span> Profile & Bio
+                    </button>
+                    <button type="button" class="settings-nav-btn" id="snav-privacy" onclick="switchSettingsSection('privacy')">
+                        <span style="font-size: 1.1rem;">🛡️</span> Privacy & DMs
+                    </button>
+                    <button type="button" class="settings-nav-btn danger" id="snav-danger" onclick="switchSettingsSection('danger')">
+                        <span style="font-size: 1.1rem;">⚠️</span> Danger Zone
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Right Content Area -->
+            <div style="padding: 2rem;">
+
+                <!-- ============================================== -->
+                <!-- SECTION 1: CHANGE PASSWORD                     -->
+                <!-- ============================================== -->
+                <div id="section-password" class="settings-section">
+                    <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+                        Change Password
+                    </h2>
+                    <p style="font-size: 0.86rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Ensure your account stays secure with a strong password.
+                    </p>
+
+                    <form id="form-change-password" onsubmit="handleChangePassword(event)" style="max-width: 480px;">
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="current-password" class="form-label">Current Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="current-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                                <button type="button" onclick="togglePassVisibility('current-password')" class="pass-toggle-btn" title="Toggle visibility">👁️</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="new-password" class="form-label">New Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="new-password" class="form-input" placeholder="Minimum 6 characters" required autocomplete="new-password">
+                                <button type="button" onclick="togglePassVisibility('new-password')" class="pass-toggle-btn" title="Toggle visibility">👁️</button>
+                            </div>
+                            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.3rem;">
+                                Must be at least 6 characters long.
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.75rem;">
+                            <label for="confirm-new-password" class="form-label">Confirm New Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="confirm-new-password" class="form-input" placeholder="Repeat new password" required autocomplete="new-password">
+                                <button type="button" onclick="togglePassVisibility('confirm-new-password')" class="pass-toggle-btn" title="Toggle visibility">👁️</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btn-save-password" class="btn btn-primary" style="padding: 0.65rem 1.5rem;">
+                            Update Password
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- SECTION 2: ACCOUNT & USERNAME/EMAIL            -->
+                <!-- ============================================== -->
+                <div id="section-account" class="settings-section" style="display: none;">
+                    <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+                        Account Details
+                    </h2>
+                    <p style="font-size: 0.86rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Manage your username handle and contact email address.
+                    </p>
+
+                    <form id="form-account-details" onsubmit="handleUpdateAccount(event)" style="max-width: 480px;">
+                        <div class="form-group" style="margin-bottom: 1.25rem;">
+                            <label for="account-username" class="form-label">Username</label>
+                            <div style="position: relative;">
+                                <input type="text" id="account-username" class="form-input" required autocomplete="username">
+                            </div>
+                            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 0.3rem;">
+                                Your unique handle on ConnectSphere.
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.75rem;">
+                            <label for="account-email" class="form-label">Email Address</label>
+                            <input type="email" id="account-email" class="form-input" required autocomplete="email">
+                        </div>
+
+                        <button type="submit" id="btn-save-account" class="btn btn-primary" style="padding: 0.65rem 1.5rem;">
+                            Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- SECTION 3: PROFILE & BIO                       -->
+                <!-- ============================================== -->
+                <div id="section-profile" class="settings-section" style="display: none;">
+                    <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+                        Profile Customization
+                    </h2>
+                    <p style="font-size: 0.86rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Update how other creators see your profile picture and biography.
+                    </p>
+
+                    <form id="form-profile-details" onsubmit="handleUpdateProfile(event)" style="max-width: 520px;">
+                        <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.5rem;">
+                            <img id="settings-avatar-preview" src="" alt="Avatar" class="avatar avatar-xl" style="width: 76px; height: 76px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); display: none;">
+                            <div id="settings-avatar-fallback" class="avatar avatar-xl" style="width: 76px; height: 76px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 700; color: #fff;">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <label for="settings-avatar-input" class="btn btn-outline btn-sm" style="margin-bottom: 0.35rem;">
+                                    Upload New Picture
+                                </label>
+                                <input type="file" id="settings-avatar-input" accept="image/*" style="display: none;" onchange="previewNewAvatar(event)">
+                                <div style="font-size: 0.74rem; color: var(--text-muted);">
+                                    PNG, JPG or WEBP up to 10MB.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 1.75rem;">
+                            <label for="settings-bio" class="form-label">Biography</label>
+                            <textarea id="settings-bio" class="form-textarea" rows="4" placeholder="Tell the sphere about your interests, work, and projects..."></textarea>
+                        </div>
+
+                        <button type="submit" id="btn-save-profile" class="btn btn-primary" style="padding: 0.65rem 1.5rem;">
+                            Save Profile
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- SECTION 4: PRIVACY & DIRECT MESSAGES           -->
+                <!-- ============================================== -->
+                <div id="section-privacy" class="settings-section" style="display: none;">
+                    <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
+                        Privacy & Messaging Preferences
+                    </h2>
+                    <p style="font-size: 0.86rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                        Control how you interact with other users on ConnectSphere.
+                    </p>
+
+                    <div class="card" style="padding: 1.25rem; background: rgba(255, 255, 255, 0.03); margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                            <div>
+                                <div style="font-weight: 600; color: #fff; font-size: 0.95rem; margin-bottom: 0.2rem;">
+                                    Mutual Following DMs
+                                </div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+                                    Only creators you follow who also follow you back can send you direct messages.
+                                </div>
+                            </div>
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700;">
+                                Enabled by Default
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 1.25rem; background: rgba(255, 255, 255, 0.03);">
+                        <div style="font-weight: 600; color: #fff; font-size: 0.95rem; margin-bottom: 0.2rem;">
+                            Active Session
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
+                            Currently logged in as <strong>@{{ user.username }}</strong>.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================== -->
+                <!-- SECTION 5: DANGER ZONE                         -->
+                <!-- ============================================== -->
+                <div id="section-danger" class="settings-section" style="display: none;">
+                    <div style="border-left: 4px solid var(--danger); padding-left: 1rem; margin-bottom: 1.5rem;">
+                        <h2 style="font-size: 1.15rem; font-weight: 700; color: #f87171; margin-bottom: 0.2rem;">
+                            Danger Zone
+                        </h2>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Irreversible actions for your account.
+                        </p>
+                    </div>
+
+                    <div class="card" style="border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.08); padding: 1.5rem;">
+                        <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem;">
+                            Delete Your Account
+                        </h3>
+                        <p style="font-size: 0.85rem; color: #fca5a5; line-height: 1.5; margin-bottom: 1.25rem;">
+                            Once you delete your account, your profile, posts, comments, likes, and message history will be permanently deleted. This action cannot be undone.
+                        </p>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteAccountModal()">
+                            Delete My Account
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirm Delete Account -->
+<div class="modal-overlay" id="modal-delete-account" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+        <div class="modal-header">
+            <h2 class="modal-title" style="color: var(--danger);">Confirm Account Deletion</h2>
+            <button class="modal-close" onclick="closeDeleteAccountModal()">&times;</button>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.25rem;">
+            Please enter your password to confirm that you want to permanently delete your account <strong>@{{ user.username }}</strong>.
+        </p>
+        <form onsubmit="handleConfirmDeleteAccount(event)">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label for="delete-password-input" class="form-label">Password</label>
+                <input type="password" id="delete-password-input" class="form-input" placeholder="••••••••" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.65rem;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="closeDeleteAccountModal()">Cancel</button>
+                <button type="submit" id="btn-confirm-delete" class="btn btn-danger btn-sm">Permanently Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.settings-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    border: none;
+    transition: var(--transition);
+}
+.settings-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+.settings-nav-btn.active {
+    background: var(--primary);
+    color: #fff;
+}
+.settings-nav-btn.danger {
+    color: #f87171;
+    margin-top: 1rem;
+}
+.settings-nav-btn.danger.active {
+    background: var(--danger);
+    color: #fff;
+}
+.pass-toggle-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+.pass-toggle-btn:hover {
+    opacity: 1;
+}
+
+@media (max-width: 768px) {
+    .settings-layout {
+        grid-template-columns: 1fr !important;
+    }
+    .settings-layout aside {
+        border-right: none !important;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .settings-layout aside > div {
+        flex-direction: row !important;
+        overflow-x: auto;
+        padding-bottom: 0.25rem;
+    }
+    .settings-nav-btn {
+        white-space: nowrap;
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+    .settings-nav-btn.danger {
+        margin-top: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/settings.js' %}"></script>
+{% endblock %}
