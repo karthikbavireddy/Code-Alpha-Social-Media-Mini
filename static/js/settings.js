@@ -58,7 +58,18 @@ async function loadInitialSettings() {
         if (currentUserData.profile_picture && avatarPreview) {
             avatarPreview.src = currentUserData.profile_picture;
             avatarPreview.style.display = 'block';
+            avatarPreview.onerror = function() {
+                this.style.display = 'none';
+                if (avatarFallback) {
+                    avatarFallback.textContent = (currentUserData.username || '?').charAt(0).toUpperCase();
+                    avatarFallback.style.display = 'flex';
+                }
+            };
             if (avatarFallback) avatarFallback.style.display = 'none';
+        } else if (avatarFallback) {
+            avatarFallback.textContent = (currentUserData.username || '?').charAt(0).toUpperCase();
+            avatarFallback.style.display = 'flex';
+            if (avatarPreview) avatarPreview.style.display = 'none';
         }
     } catch (err) {
         console.error('Could not load user settings:', err);

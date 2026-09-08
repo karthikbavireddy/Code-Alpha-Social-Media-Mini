@@ -24,8 +24,11 @@ from .serializers import (
     CommentSerializer,
     UserProfileSerializer,
     UserPublicSerializer,
-    MessageSerializer
+    MessageSerializer,
+    resolve_profile_avatar_url,
+    resolve_post_image_url
 )
+from .utils import generate_optimized_data_uri
 
 
 # ==========================================
@@ -101,9 +104,7 @@ def api_register(request):
         login(request, user)
         token, _ = Token.objects.get_or_create(user=user)
         
-        avatar_url = None
-        if hasattr(user, 'profile') and user.profile.profile_picture:
-            avatar_url = request.build_absolute_uri(user.profile.profile_picture.url)
+        avatar_url = resolve_profile_avatar_url(user, request)
 
         return Response({
             'message': 'Registration successful.',
@@ -153,9 +154,7 @@ def api_login(request):
         Profile.objects.get_or_create(user=user)
         token, _ = Token.objects.get_or_create(user=user)
 
-        avatar_url = None
-        if user.profile.profile_picture:
-            avatar_url = request.build_absolute_uri(user.profile.profile_picture.url)
+        avatar_url = resolve_profile_avatar_url(user, request)
 
         return Response({
             'message': 'Login successful.',
@@ -195,9 +194,7 @@ def api_me(request):
     user = request.user
     profile, _ = Profile.objects.get_or_create(user=user)
 
-    avatar_url = None
-    if profile.profile_picture:
-        avatar_url = request.build_absolute_uri(profile.profile_picture.url)
+    avatar_url = resolve_profile_avatar_url(user, request)
 
     return Response({
         'id': user.id,
@@ -244,13 +241,13 @@ def api_update_profile(request):
         profile.bio = request.data.get('bio', '')
 
     if 'profile_picture' in request.FILES:
-        profile.profile_picture = request.FILES['profile_picture']
+        pic = request.FILES['profile_picture']
+        profile.profile_picture = pic
+        profile.profile_picture_data = generate_optimized_data_uri(pic, max_size=(400, 400), quality=85)
 
     profile.save()
 
-    avatar_url = None
-    if profile.profile_picture:
-        avatar_url = request.build_absolute_uri(profile.profile_picture.url)
+    avatar_url = resolve_profile_avatar_url(profile, request)
 
     return Response({
         'message': 'Profile updated successfully.',
@@ -571,11 +568,13 @@ def api_create_post(request):
         return Response({'error': 'Post content cannot be empty.'}, status=status.HTTP_400_BAD_REQUEST)
 
     image = request.FILES.get('image', None)
+    image_data = generate_optimized_data_uri(image, max_size=(1080, 1080), quality=80) if image else None
 
     post = Post.objects.create(
         author=request.user,
         content=content,
-        image=image
+        image=image,
+        image_data=image_data
     )
 
     serializer = PostSerializer(post, context={'request': request})
@@ -616,9 +615,12 @@ def api_update_post(request, post_id):
     post.content = content
 
     if 'image' in request.FILES:
-        post.image = request.FILES['image']
+        img_file = request.FILES['image']
+        post.image = img_file
+        post.image_data = generate_optimized_data_uri(img_file, max_size=(1080, 1080), quality=80)
     elif request.data.get('remove_image') == 'true':
         post.image = None
+        post.image_data = None
 
     post.save()
 

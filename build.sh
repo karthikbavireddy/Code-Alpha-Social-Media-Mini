@@ -17,4 +17,7 @@ python manage.py migrate
 echo "==> Collecting Static Files..."
 python manage.py collectstatic --no-input
 
+echo "==> Ensuring Media Directories Exist..."
+mkdir -p media/profiles media/posts
+
 echo "==> Build Completed Successfully!"

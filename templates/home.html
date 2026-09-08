@@ -8,7 +8,9 @@
     <!-- Left Sidebar: User Mini Profile -->
     <aside class="sidebar-panel left-sidebar">
         <div class="card mini-profile">
-            <img id="sidebar-avatar" src="" alt="Avatar" class="mini-profile-avatar" style="display: none;">
+            <div id="sidebar-avatar-wrap" class="sidebar-avatar-wrap">
+                <div class="mini-profile-avatar">{{ user.username|first|upper }}</div>
+            </div>
             <h2 class="mini-profile-name" id="sidebar-username">Loading...</h2>
             <div class="mini-profile-handle" id="sidebar-handle">@...</div>
             <div class="mini-profile-stats">
@@ -57,7 +59,9 @@
         <!-- New Post Composer -->
         <div class="post-composer">
             <div class="composer-top">
-                <img id="composer-avatar" src="" alt="User" class="composer-avatar">
+                <div id="composer-avatar-wrap">
+                    <div class="post-avatar composer-avatar">{{ user.username|first|upper }}</div>
+                </div>
                 <textarea id="composer-text" class="composer-textarea" placeholder="What's happening in your sphere?" rows="3"></textarea>
             </div>
 

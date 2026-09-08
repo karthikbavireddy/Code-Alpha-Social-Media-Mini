@@ -20,6 +20,11 @@ class Profile(models.Model):
         blank=True,
         null=True
     )
+    profile_picture_data = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Persistent base64 data URI fallback for ephemeral hosting like Render"
+    )
     date_joined = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -32,9 +37,15 @@ class Profile(models.Model):
 
     @property
     def profile_picture_url(self):
-        """Returns the media URL of avatar or None if not set."""
+        """Returns the media URL of avatar or persistent data URI or None."""
         if self.profile_picture and hasattr(self.profile_picture, 'url'):
-            return self.profile_picture.url
+            try:
+                if self.profile_picture.storage.exists(self.profile_picture.name):
+                    return self.profile_picture.url
+            except Exception:
+                pass
+        if self.profile_picture_data:
+            return self.profile_picture_data
         return None
 
 
@@ -53,6 +64,11 @@ class Post(models.Model):
         upload_to="posts/",
         blank=True,
         null=True
+    )
+    image_data = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Persistent base64 data URI fallback for ephemeral hosting like Render"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField(

@@ -127,8 +127,8 @@ function formatTimestamp(dateStr) {
 // Helper to render user avatar or styled initials
 function renderAvatarHtml(avatarUrl, username, extraClass = '') {
     const initial = (username ? username.charAt(0) : '?').toUpperCase();
-    if (avatarUrl) {
-        return `<img src="${avatarUrl}" alt="@${username}" class="${extraClass}" onerror="this.outerHTML='<div class=\\'${extraClass}\\'>${initial}</div>'">`;
+    if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
+        return `<img src="${avatarUrl}" alt="@${username}" class="${extraClass}" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'), {className: '${extraClass}', textContent: '${initial}'}));">`;
     }
     return `<div class="${extraClass}">${initial}</div>`;
 }

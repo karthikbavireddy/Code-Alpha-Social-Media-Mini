@@ -53,6 +53,50 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+def resolve_profile_avatar_url(user_or_profile, request=None):
+    """
+    Safely resolve avatar URL: checks if physical file exists on disk,
+    otherwise falls back to persistent base64 data URI (survives Render restarts).
+    Returns None if neither exists to trigger clean initials avatar fallback.
+    """
+    if not user_or_profile:
+        return None
+    profile = getattr(user_or_profile, 'profile', user_or_profile)
+    if not profile:
+        return None
+    if profile.profile_picture:
+        try:
+            if profile.profile_picture.storage.exists(profile.profile_picture.name):
+                url = profile.profile_picture.url
+                if url and url.strip() not in ('', '/media/'):
+                    return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+    if getattr(profile, 'profile_picture_data', None):
+        return profile.profile_picture_data
+    return None
+
+
+def resolve_post_image_url(post, request=None):
+    """
+    Safely resolve post media URL: checks if physical file exists on disk,
+    otherwise falls back to persistent base64 data URI (survives Render restarts).
+    """
+    if not post:
+        return None
+    if post.image:
+        try:
+            if post.image.storage.exists(post.image.name):
+                url = post.image.url
+                if url and url.strip() not in ('', '/media/'):
+                    return request.build_absolute_uri(url) if request else url
+        except Exception:
+            pass
+    if getattr(post, 'image_data', None):
+        return post.image_data
+    return None
+
+
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     author_id = serializers.ReadOnlyField(source='author.id')
@@ -64,12 +108,7 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'author', 'author_id', 'author_profile_picture', 'created_at']
 
     def get_author_profile_picture(self, obj):
-        if hasattr(obj.author, 'profile') and obj.author.profile.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.author.profile.profile_picture.url)
-            return obj.author.profile.profile_picture.url
-        return None
+        return resolve_profile_avatar_url(obj.author, self.context.get('request'))
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -94,26 +133,10 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        if not obj.image:
-            return None
-        try:
-            url = obj.image.url
-            if not url or url.strip() in ('', '/media/'):
-                return None
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(url)
-            return url
-        except Exception:
-            return None
+        return resolve_post_image_url(obj, self.context.get('request'))
 
     def get_author_profile_picture(self, obj):
-        if hasattr(obj.author, 'profile') and obj.author.profile.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.author.profile.profile_picture.url)
-            return obj.author.profile.profile_picture.url
-        return None
+        return resolve_profile_avatar_url(obj.author, self.context.get('request'))
 
     def get_like_count(self, obj):
         return obj.likes.count()
@@ -141,12 +164,7 @@ class UserPublicSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'bio', 'profile_picture', 'follower_count', 'is_following', 'is_followed_by', 'is_mutual_following']
 
     def get_profile_picture(self, obj):
-        if hasattr(obj, 'profile') and obj.profile.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.profile.profile_picture.url)
-            return obj.profile.profile_picture.url
-        return None
+        return resolve_profile_avatar_url(obj, self.context.get('request'))
 
     def get_follower_count(self, obj):
         return obj.followers.count()
@@ -194,12 +212,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
 
     def get_profile_picture(self, obj):
-        if hasattr(obj, 'profile') and obj.profile.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.profile.profile_picture.url)
-            return obj.profile.profile_picture.url
-        return None
+        return resolve_profile_avatar_url(obj, self.context.get('request'))
 
     def get_post_count(self, obj):
         return obj.posts.count()
@@ -257,20 +270,10 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
     def get_sender_avatar(self, obj):
-        if hasattr(obj.sender, 'profile') and obj.sender.profile.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.sender.profile.profile_picture.url)
-            return obj.sender.profile.profile_picture.url
-        return None
+        return resolve_profile_avatar_url(obj.sender, self.context.get('request'))
 
     def get_recipient_avatar(self, obj):
-        if hasattr(obj.recipient, 'profile') and obj.recipient.profile.profile_picture:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.recipient.profile.profile_picture.url)
-            return obj.recipient.profile.profile_picture.url
-        return None
+        return resolve_profile_avatar_url(obj.recipient, self.context.get('request'))
 
     def get_is_mine(self, obj):
         request = self.context.get('request')

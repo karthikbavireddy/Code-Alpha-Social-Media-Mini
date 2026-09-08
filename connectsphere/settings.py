@@ -72,11 +72,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'connectsphere.wsgi.application'
 
+import sys
+TESTING = 'test' in sys.argv
+
 # Database
-# Uses Neon PostgreSQL if DATABASE_URL is provided, otherwise falls back to SQLite
+# Uses Neon PostgreSQL in production / normal run if DATABASE_URL is provided; uses SQLite for tests and local fallback.
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-if DATABASE_URL:
+if DATABASE_URL and not TESTING:
     DATABASES = {
         'default': dj_database_url.parse(
             DATABASE_URL,
@@ -129,6 +132,8 @@ STORAGES = {
 # Media files (User avatars, Post uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+os.makedirs(MEDIA_ROOT / 'profiles', exist_ok=True)
+os.makedirs(MEDIA_ROOT / 'posts', exist_ok=True)
 
 # Django REST Framework configuration
 REST_FRAMEWORK = {

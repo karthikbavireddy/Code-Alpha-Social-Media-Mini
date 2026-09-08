@@ -18,19 +18,15 @@ async function initCurrentUser() {
         renderSidebarMiniProfile(user);
 
         // Update composer avatar if exists
-        const composerAvatar = document.getElementById('composer-avatar');
-        if (composerAvatar) {
-            if (user.profile_picture) {
-                composerAvatar.src = user.profile_picture;
-            } else {
-                composerAvatar.outerHTML = `<div class="post-avatar" id="composer-avatar">${user.username.charAt(0).toUpperCase()}</div>`;
-            }
+        const composerAvatarWrap = document.getElementById('composer-avatar-wrap');
+        if (composerAvatarWrap) {
+            composerAvatarWrap.innerHTML = renderAvatarHtml(user.profile_picture, user.username, 'post-avatar composer-avatar');
         }
 
         // Update mobile header avatar
         const mobAvatar = document.getElementById('mobile-header-avatar');
-        if (mobAvatar && user.profile_picture) {
-            mobAvatar.innerHTML = `<img src="${user.profile_picture}" alt="${user.username}">`;
+        if (mobAvatar) {
+            mobAvatar.innerHTML = renderAvatarHtml(user.profile_picture, user.username, 'mobile-header-avatar-img');
         }
 
         // Load dynamic sidebar creator suggestions
@@ -44,19 +40,15 @@ async function initCurrentUser() {
 
 // Render mini profile in left sidebar
 function renderSidebarMiniProfile(user) {
-    const avatarEl = document.getElementById('sidebar-avatar');
+    const avatarWrap = document.getElementById('sidebar-avatar-wrap');
     const nameEl = document.getElementById('sidebar-username');
     const handleEl = document.getElementById('sidebar-handle');
     const postCountEl = document.getElementById('sidebar-post-count');
     const followerCountEl = document.getElementById('sidebar-follower-count');
     const followingCountEl = document.getElementById('sidebar-following-count');
 
-    if (avatarEl) {
-        if (user.profile_picture) {
-            avatarEl.src = user.profile_picture;
-        } else {
-            avatarEl.outerHTML = `<div class="mini-profile-avatar" id="sidebar-avatar">${user.username.charAt(0).toUpperCase()}</div>`;
-        }
+    if (avatarWrap) {
+        avatarWrap.innerHTML = renderAvatarHtml(user.profile_picture, user.username, 'mini-profile-avatar');
     }
     if (nameEl) nameEl.textContent = user.username;
     if (handleEl) handleEl.textContent = `@${user.username}`;
@@ -79,10 +71,7 @@ async function loadSidebarSuggestions() {
 
         const candidates = users.slice(0, 3);
         suggestionsContainer.innerHTML = candidates.map(u => {
-            const initial = (u.username ? u.username.charAt(0) : '?').toUpperCase();
-            const avatarHtml = u.profile_picture
-                ? `<img src="${u.profile_picture}" alt="${u.username}">`
-                : initial;
+            const avatarHtml = renderAvatarHtml(u.profile_picture, u.username, 'suggestion-avatar-inner');
 
             return `
                 <div class="suggestion-item">
