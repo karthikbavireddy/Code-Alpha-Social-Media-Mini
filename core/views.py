@@ -1169,3 +1169,14 @@ def api_unread_messages_count(request):
     return Response({'unread_count': count}, status=status.HTTP_200_OK)
 
 
+@api_view(['POST', 'GET'])
+@permission_classes([IsAuthenticated])
+def api_heartbeat(request):
+    """
+    Periodic heartbeat ping sent by active client tabs to keep user's profile.last_seen fresh in real-time.
+    """
+    touch_user_activity(request.user)
+    return Response({'status': 'ok', 'active': True}, status=status.HTTP_200_OK)
+
+
+

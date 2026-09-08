@@ -59,4 +59,5 @@ urlpatterns = [
     path('api/messages/unread-count/', views.api_unread_messages_count, name='api_unread_messages_count'),
     path('api/messages/<str:username>/', views.api_messages_with_user, name='api_messages_with_user'),
     path('api/messages/<str:username>/send/', views.api_send_message, name='api_send_message'),
+    path('api/heartbeat/', views.api_heartbeat, name='api_heartbeat'),
 ]

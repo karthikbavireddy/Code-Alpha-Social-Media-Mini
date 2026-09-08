@@ -224,4 +224,21 @@ function mentionUserInComment(username, postId) {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateUnreadMessagesBadges();
+
+    // Start background activity heartbeat (every 20s while tab is active)
+    if (!window._heartbeatStarted) {
+        window._heartbeatStarted = true;
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                const token = getCsrfToken();
+                fetch('/api/heartbeat/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': token || '',
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(() => {});
+            }
+        }, 20000);
+    }
 });

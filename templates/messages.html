@@ -430,6 +430,34 @@
     flex-shrink: 0;
 }
 
+.dm-contact-badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-weight: 700;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    line-height: 1.4;
+}
+.dm-contact-badge.mutual {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+}
+.dm-contact-badge.following {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-muted);
+}
+
+.dm-chat-btn {
+    font-size: 0.72rem !important;
+    padding: 0.3rem 0.65rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    margin-left: 0.4rem !important;
+}
+
 .dm-action-btn {
     white-space: nowrap !important;
     display: inline-flex !important;
@@ -502,5 +530,5 @@
 <script>
     window.TARGET_USERNAME = "{{ target_username }}";
 </script>
-<script src="{% static 'js/messages.js' %}"></script>
+<script src="{% static 'js/messages.js' %}?v=2.3"></script>
 {% endblock %}

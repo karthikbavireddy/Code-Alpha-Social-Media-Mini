@@ -203,23 +203,21 @@ function renderContacts() {
                     <span class="dm-status-dot ${isOnline ? 'online' : 'offline'}" title="${isOnline ? 'Active now' : (contact.status_text || 'Offline')}"></span>
                 </div>
 
-                <div style="flex: 1; min-width: 0;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-weight: 700; color: #fff; font-size: 0.88rem;">
+                <div style="flex: 1; min-width: 0; overflow: hidden;">
+                    <div style="display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; margin-bottom: 2px;">
+                        <span style="font-weight: 700; color: #fff; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">
                             @${escapeHtml(contact.username)}
                         </span>
-                        ${contact.is_mutual ? `
-                            <span style="font-size: 0.65rem; padding: 1px 6px; border-radius: 6px; background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700;">Mutual Follower</span>
-                        ` : `
-                            <span style="font-size: 0.65rem; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); color: var(--text-muted);">Following</span>
-                        `}
+                        <span class="dm-contact-badge ${contact.is_mutual ? 'mutual' : 'following'}">
+                            ${contact.is_mutual ? 'Mutual' : 'Following'}
+                        </span>
                     </div>
                     <div style="font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${contact.bio ? escapeHtml(contact.bio) : 'Click to send a message'}
                     </div>
                 </div>
 
-                <button class="btn btn-outline btn-sm" style="font-size: 0.72rem; padding: 0.3rem 0.65rem;" onclick="event.stopPropagation(); selectConversation('${escapeHtml(contact.username)}')">
+                <button class="btn btn-outline btn-sm dm-chat-btn" onclick="event.stopPropagation(); selectConversation('${escapeHtml(contact.username)}')">
                     Chat
                 </button>
             </div>
