@@ -46,6 +46,7 @@ urlpatterns = [
 
     # Direct Messages
     path('api/conversations/', views.api_conversations, name='api_conversations'),
+    path('api/messages/contacts/', views.api_message_contacts, name='api_message_contacts'),
     path('api/messages/unread-count/', views.api_unread_messages_count, name='api_unread_messages_count'),
     path('api/messages/<str:username>/', views.api_messages_with_user, name='api_messages_with_user'),
     path('api/messages/<str:username>/send/', views.api_send_message, name='api_send_message'),

@@ -564,12 +564,18 @@ def api_conversations(request):
         if hasattr(partner, 'profile') and partner.profile.profile_picture:
             avatar_url = request.build_absolute_uri(partner.profile.profile_picture.url)
 
+        user_follows = Follow.objects.filter(follower=user, following=partner).exists()
+        partner_follows = Follow.objects.filter(follower=partner, following=user).exists()
+
         conversations.append({
             'partner': {
                 'id': partner.id,
                 'username': partner.username,
                 'avatar': avatar_url,
-                'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else ''
+                'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else '',
+                'is_following': user_follows,
+                'is_followed_by': partner_follows,
+                'is_mutual': user_follows and partner_follows,
             },
             'last_message': {
                 'content': last_msg.content if last_msg else '',
@@ -586,6 +592,51 @@ def api_conversations(request):
     )
 
     return Response({'conversations': conversations}, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_message_contacts(request):
+    """
+    List connected contacts (mutual followers and followed users) so the user can easily
+    start a conversation with anyone they follow.
+    """
+    user = request.user
+    following_ids = set(Follow.objects.filter(follower=user).values_list('following_id', flat=True))
+    follower_ids = set(Follow.objects.filter(following=user).values_list('follower_id', flat=True))
+
+    connected_ids = following_ids.union(follower_ids)
+    connected_users = User.objects.filter(id__in=connected_ids).select_related('profile')
+
+    sent_to = Message.objects.filter(sender=user).values_list('recipient_id', flat=True)
+    received_from = Message.objects.filter(recipient=user).values_list('sender_id', flat=True)
+    active_chat_ids = set(sent_to).union(set(received_from))
+
+    contacts = []
+    for partner in connected_users:
+        is_following = partner.id in following_ids
+        is_followed_by = partner.id in follower_ids
+        is_mutual = is_following and is_followed_by
+        avatar_url = None
+        if hasattr(partner, 'profile') and partner.profile.profile_picture:
+            avatar_url = request.build_absolute_uri(partner.profile.profile_picture.url)
+
+        contacts.append({
+            'id': partner.id,
+            'username': partner.username,
+            'avatar': avatar_url,
+            'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else '',
+            'is_following': is_following,
+            'is_followed_by': is_followed_by,
+            'is_mutual': is_mutual,
+            'can_message': is_mutual or is_following or is_followed_by,
+            'has_existing_chat': partner.id in active_chat_ids,
+        })
+
+    # Sort: mutual followers first, then following, then alphabetically
+    contacts.sort(key=lambda c: (not c['is_mutual'], not c['is_following'], c['username'].lower()))
+
+    return Response({'contacts': contacts}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -616,12 +667,22 @@ def api_messages_with_user(request, username):
     if hasattr(partner, 'profile') and partner.profile.profile_picture:
         avatar_url = request.build_absolute_uri(partner.profile.profile_picture.url)
 
+    # Check follow relationships
+    user_follows_partner = Follow.objects.filter(follower=user, following=partner).exists()
+    partner_follows_user = Follow.objects.filter(follower=partner, following=user).exists()
+    is_mutual = user_follows_partner and partner_follows_user
+
     return Response({
         'partner': {
             'id': partner.id,
             'username': partner.username,
             'avatar': avatar_url,
+            'bio': getattr(partner.profile, 'bio', '') if hasattr(partner, 'profile') else '',
         },
+        'user_follows_partner': user_follows_partner,
+        'partner_follows_user': partner_follows_user,
+        'is_mutual': is_mutual,
+        'can_message': is_mutual or user_follows_partner or partner_follows_user,
         'messages': serializer.data
     }, status=status.HTTP_200_OK)
 
@@ -631,6 +692,7 @@ def api_messages_with_user(request, username):
 def api_send_message(request, username):
     """
     Send a direct message to target username.
+    Both users following each other (or connected via follow) can chat normally.
     """
     partner = get_object_or_404(User, username__iexact=username)
     content = request.data.get('content', '').strip()
@@ -640,6 +702,15 @@ def api_send_message(request, username):
 
     if partner.id == request.user.id:
         return Response({'error': 'Cannot send messages to yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user_follows_partner = Follow.objects.filter(follower=request.user, following=partner).exists()
+    partner_follows_user = Follow.objects.filter(follower=partner, following=request.user).exists()
+
+    # Validate that they are connected by following
+    if not (user_follows_partner or partner_follows_user):
+        return Response({
+            'error': 'You must follow each other to send direct messages.'
+        }, status=status.HTTP_403_FORBIDDEN)
 
     message = Message.objects.create(
         sender=request.user,
@@ -659,4 +730,5 @@ def api_unread_messages_count(request):
     """
     count = Message.objects.filter(recipient=request.user, is_read=False).count()
     return Response({'unread_count': count}, status=status.HTTP_200_OK)
+
 

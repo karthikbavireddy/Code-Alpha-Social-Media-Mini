@@ -140,6 +140,7 @@ export const api = {
 
   // Direct Messaging
   getConversations: () => api.get('/conversations/'),
+  getMessageContacts: () => api.get('/messages/contacts/'),
   getMessages: (username) => api.get(`/messages/${encodeURIComponent(username)}/`),
   sendMessage: (username, content) => api.post(`/messages/${encodeURIComponent(username)}/send/`, { content }),
   getUnreadCount: () => api.get('/messages/unread-count/'),

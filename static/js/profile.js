@@ -84,6 +84,9 @@ function renderProfileHeader(data) {
                 <button class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'}" id="follow-toggle-btn" onclick="toggleFollow('${data.username}')">
                     ${isFollowing ? 'Unfollow' : 'Follow'}
                 </button>
+                <a href="/#messages-${data.username}" class="btn btn-outline" style="margin-left: 0.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                    💬 Message
+                </a>
             `;
         } else {
             actionBtnContainer.innerHTML = `

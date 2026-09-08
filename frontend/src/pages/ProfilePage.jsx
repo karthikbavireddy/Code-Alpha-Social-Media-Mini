@@ -199,9 +199,40 @@ export default function ProfilePage({ username, onBack, onOpenProfile, onOpenDet
 
           {/* User Details */}
           <div style={{ marginBottom: '16px' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#fff', marginBottom: '2px' }}>
-              {profileData.username}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#fff', marginBottom: '2px' }}>
+                {profileData.username}
+              </h1>
+              {profileData.is_mutual_following && (
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    color: '#34d399',
+                    fontWeight: '700',
+                  }}
+                >
+                  Mutual Follower
+                </span>
+              )}
+              {!profileData.is_mutual_following && profileData.is_followed_by && (
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: 'var(--text-muted)',
+                    fontWeight: '600',
+                  }}
+                >
+                  Follows you
+                </span>
+              )}
+            </div>
             <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
               @{profileData.username}
             </div>

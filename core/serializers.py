@@ -118,10 +118,12 @@ class UserPublicSerializer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
+    is_followed_by = serializers.SerializerMethodField()
+    is_mutual_following = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'bio', 'profile_picture', 'follower_count', 'is_following']
+        fields = ['id', 'username', 'bio', 'profile_picture', 'follower_count', 'is_following', 'is_followed_by', 'is_mutual_following']
 
     def get_profile_picture(self, obj):
         if hasattr(obj, 'profile') and obj.profile.profile_picture:
@@ -140,6 +142,22 @@ class UserPublicSerializer(serializers.ModelSerializer):
             return Follow.objects.filter(follower=request.user, following=obj).exists()
         return False
 
+    def get_is_followed_by(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Follow.objects.filter(follower=obj, following=request.user).exists()
+        return False
+
+    def get_is_mutual_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.id == obj.id:
+                return False
+            follows_them = Follow.objects.filter(follower=request.user, following=obj).exists()
+            follows_me = Follow.objects.filter(follower=obj, following=request.user).exists()
+            return follows_them and follows_me
+        return False
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     bio = serializers.CharField(source='profile.bio', read_only=True)
@@ -148,6 +166,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     follower_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
+    is_followed_by = serializers.SerializerMethodField()
+    is_mutual_following = serializers.SerializerMethodField()
     posts = serializers.SerializerMethodField()
 
     class Meta:
@@ -155,7 +175,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'bio', 'profile_picture',
             'post_count', 'follower_count', 'following_count',
-            'is_following', 'posts'
+            'is_following', 'is_followed_by', 'is_mutual_following', 'posts'
         ]
 
     def get_profile_picture(self, obj):
@@ -181,6 +201,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
             if request.user.id == obj.id:
                 return False
             return Follow.objects.filter(follower=request.user, following=obj).exists()
+        return False
+
+    def get_is_followed_by(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.id == obj.id:
+                return False
+            return Follow.objects.filter(follower=obj, following=request.user).exists()
+        return False
+
+    def get_is_mutual_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.id == obj.id:
+                return False
+            follows_them = Follow.objects.filter(follower=request.user, following=obj).exists()
+            follows_me = Follow.objects.filter(follower=obj, following=request.user).exists()
+            return follows_them and follows_me
         return False
 
     def get_posts(self, obj):
