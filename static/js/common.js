@@ -172,10 +172,14 @@ async function updateUnreadMessagesBadges() {
     }
 }
 
-// Format @mentions in text as clickable profile links
+// Format @mentions and #hashtags in text as clickable links
 function formatMentions(text) {
     if (!text) return '';
-    return text.replace(/(^|[^a-zA-Z0-9_])@([a-zA-Z0-9_]{3,30})/g, '$1<a href="/profile/$2/" class="mention-tag" onclick="event.stopPropagation()">@$2</a>');
+    // 1. Mentions @username -> <a href="/profile/username/" class="mention-tag" onclick="event.stopPropagation()">@username</a>
+    let formatted = text.replace(/(^|[^a-zA-Z0-9_])@([a-zA-Z0-9_]+)/g, '$1<a href="/profile/$2/" class="mention-tag" onclick="event.stopPropagation()">@$2</a>');
+    // 2. Hashtags #hashtag -> <a href="/explore/?q=%23$2" class="hashtag-tag" onclick="event.stopPropagation()">#$2</a>
+    formatted = formatted.replace(/(^|[^a-zA-Z0-9_])#([a-zA-Z0-9_\u00C0-\u017F]+)/g, '$1<a href="/explore/?q=%23$2" class="hashtag-tag" onclick="event.stopPropagation()">#$2</a>');
+    return formatted;
 }
 
 // Toggle like on a comment
@@ -222,8 +226,215 @@ function mentionUserInComment(username, postId) {
     input.setSelectionRange(input.value.length, input.value.length);
 }
 
+// ==========================================
+// MENTION AUTOCOMPLETE ENGINE
+// ==========================================
+let _mentionDropdownEl = null;
+let _mentionTargetInput = null;
+let _mentionMatchInfo = null;
+let _mentionSuggestions = [];
+let _mentionSelectedIndex = 0;
+let _mentionDebounceTimer = null;
+const _mentionCache = new Map();
+
+function getOrCreateMentionDropdown() {
+    if (!_mentionDropdownEl) {
+        _mentionDropdownEl = document.createElement('div');
+        _mentionDropdownEl.id = 'global-mention-dropdown';
+        _mentionDropdownEl.className = 'mention-autocomplete-dropdown';
+        _mentionDropdownEl.style.display = 'none';
+        document.body.appendChild(_mentionDropdownEl);
+
+        // Prevent clicking inside dropdown from blurring the input
+        _mentionDropdownEl.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+    }
+    return _mentionDropdownEl;
+}
+
+function closeMentionDropdown() {
+    if (_mentionDropdownEl) {
+        _mentionDropdownEl.style.display = 'none';
+    }
+    _mentionTargetInput = null;
+    _mentionMatchInfo = null;
+    _mentionSuggestions = [];
+    _mentionSelectedIndex = 0;
+}
+
+function insertSelectedMention(username) {
+    if (!_mentionTargetInput || !_mentionMatchInfo) return;
+    const input = _mentionTargetInput;
+    const { startPos, query } = _mentionMatchInfo;
+    const original = input.value;
+    const endPos = startPos + query.length + 1; // +1 for '@'
+
+    const before = original.slice(0, startPos);
+    const after = original.slice(endPos);
+    const insertion = `@${username} `;
+
+    input.value = before + insertion + after;
+    const newCursor = before.length + insertion.length;
+    input.focus();
+    input.setSelectionRange(newCursor, newCursor);
+
+    // Dispatch input event so character counters and auto-resize react
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    closeMentionDropdown();
+}
+
+function renderMentionDropdownItems() {
+    if (!_mentionDropdownEl || _mentionSuggestions.length === 0) {
+        closeMentionDropdown();
+        return;
+    }
+
+    _mentionDropdownEl.innerHTML = _mentionSuggestions.map((user, idx) => {
+        const isSelected = idx === _mentionSelectedIndex;
+        const avatarLetter = (user.username || '?').charAt(0).toUpperCase();
+        return `
+            <div class="mention-autocomplete-item ${isSelected ? 'active' : ''}" data-index="${idx}" onclick="insertSelectedMention('${escapeHtml(user.username)}')">
+                ${user.avatar ? `
+                    <img src="${user.avatar}" class="mention-item-avatar" alt="${escapeHtml(user.username)}">
+                ` : `
+                    <div class="mention-item-avatar">${avatarLetter}</div>
+                `}
+                <div class="mention-item-info">
+                    <div class="mention-item-username">@${escapeHtml(user.username)}</div>
+                    ${user.bio ? `<div class="mention-item-bio">${escapeHtml(user.bio)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    _mentionDropdownEl.style.display = 'block';
+    positionMentionDropdown();
+}
+
+function positionMentionDropdown() {
+    if (!_mentionDropdownEl || !_mentionTargetInput) return;
+    const rect = _mentionTargetInput.getBoundingClientRect();
+    const dropdownHeight = Math.min(_mentionSuggestions.length * 44 + 10, 230);
+    const viewportHeight = window.innerHeight;
+
+    // Center horizontally aligned with input, keeping within screen bounds
+    const left = Math.max(12, Math.min(rect.left, window.innerWidth - 270));
+    _mentionDropdownEl.style.left = `${left}px`;
+
+    // Position above if not enough space below
+    if (viewportHeight - rect.bottom < dropdownHeight + 10 && rect.top > dropdownHeight + 10) {
+        _mentionDropdownEl.style.top = 'auto';
+        _mentionDropdownEl.style.bottom = `${viewportHeight - rect.top + 6}px`;
+    } else {
+        _mentionDropdownEl.style.bottom = 'auto';
+        _mentionDropdownEl.style.top = `${rect.bottom + 6}px`;
+    }
+}
+
+async function handleMentionInput(target) {
+    const val = target.value || '';
+    const caret = target.selectionStart;
+    if (typeof caret !== 'number') {
+        closeMentionDropdown();
+        return;
+    }
+
+    const textBeforeCaret = val.slice(0, caret);
+    // Matches @query at end of string or after whitespace
+    const match = textBeforeCaret.match(/(^|\s)@([a-zA-Z0-9_]*)$/);
+
+    if (!match) {
+        closeMentionDropdown();
+        return;
+    }
+
+    const query = match[2];
+    const matchLength = match[0].length;
+    const leadingSpace = match[1];
+    const startPos = caret - matchLength + leadingSpace.length;
+
+    _mentionTargetInput = target;
+    _mentionMatchInfo = { startPos, query };
+    getOrCreateMentionDropdown();
+
+    clearTimeout(_mentionDebounceTimer);
+    _mentionDebounceTimer = setTimeout(async () => {
+        try {
+            let users = [];
+            const cacheKey = query.toLowerCase();
+            if (_mentionCache.has(cacheKey)) {
+                users = _mentionCache.get(cacheKey);
+            } else {
+                const res = await apiRequest(`/api/search/?q=${encodeURIComponent(query)}`);
+                users = Array.isArray(res) ? res : (res.users || []);
+                _mentionCache.set(cacheKey, users);
+            }
+
+            if (users && users.length > 0) {
+                _mentionSuggestions = users.slice(0, 6);
+                _mentionSelectedIndex = 0;
+                renderMentionDropdownItems();
+            } else {
+                closeMentionDropdown();
+            }
+        } catch (err) {
+            closeMentionDropdown();
+        }
+    }, 120);
+}
+
+function setupGlobalMentionListener() {
+    // Listen for input on text inputs & textareas
+    document.addEventListener('input', (e) => {
+        const target = e.target;
+        if (!target) return;
+        const tag = target.tagName;
+        const isTextInput = tag === 'TEXTAREA' || (tag === 'INPUT' && (target.type === 'text' || !target.type));
+        if (isTextInput) {
+            handleMentionInput(target);
+        }
+    });
+
+    // Keyboard navigation when mention dropdown is open
+    document.addEventListener('keydown', (e) => {
+        if (!_mentionDropdownEl || _mentionDropdownEl.style.display === 'none' || _mentionSuggestions.length === 0) {
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            _mentionSelectedIndex = (_mentionSelectedIndex + 1) % _mentionSuggestions.length;
+            renderMentionDropdownItems();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            _mentionSelectedIndex = (_mentionSelectedIndex - 1 + _mentionSuggestions.length) % _mentionSuggestions.length;
+            renderMentionDropdownItems();
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            e.stopPropagation();
+            const selected = _mentionSuggestions[_mentionSelectedIndex];
+            if (selected) {
+                insertSelectedMention(selected.username);
+            }
+        } else if (e.key === 'Escape') {
+            closeMentionDropdown();
+        }
+    }, true);
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+        if (_mentionDropdownEl && _mentionDropdownEl.style.display !== 'none') {
+            if (!_mentionDropdownEl.contains(e.target) && e.target !== _mentionTargetInput) {
+                closeMentionDropdown();
+            }
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     updateUnreadMessagesBadges();
+    setupGlobalMentionListener();
 
     // Start background activity heartbeat (every 20s while tab is active)
     if (!window._heartbeatStarted) {

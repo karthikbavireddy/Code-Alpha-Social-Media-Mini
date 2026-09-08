@@ -384,3 +384,21 @@ class ConnectSphereTests(TestCase):
             'content': 'Hacked text'
         }, format='json')
         self.assertEqual(res2.status_code, status.HTTP_403_FORBIDDEN)
+
+    # 28. Hashtag and post search
+    def test_28_search_posts_and_hashtags(self):
+        Post.objects.create(author=self.user1, content="Exploring #AI and #Python on ConnectSphere!")
+        Post.objects.create(author=self.user2, content="Another random post without tags")
+
+        # Search posts by hashtag
+        res = self.client.get('/api/search/?q=%23AI&type=posts')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(res.data), 1)
+        self.assertIn('#AI', res.data[0]['content'])
+
+        # Search all
+        res_all = self.client.get('/api/search/?q=Python&type=all')
+        self.assertEqual(res_all.status_code, status.HTTP_200_OK)
+        self.assertIn('users', res_all.data)
+        self.assertIn('posts', res_all.data)
+        self.assertGreaterEqual(len(res_all.data['posts']), 1)

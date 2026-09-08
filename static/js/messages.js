@@ -530,17 +530,18 @@ function renderMessages() {
     setupDragToReplyListeners();
 }
 
-// Auto-link URLs inside message text
+// Auto-link URLs, @mentions, and #hashtags inside message text
 function formatMessageContent(rawText) {
     if (!rawText) return '';
     const escaped = escapeHtml(rawText);
     const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s]|www\.[^\s<]+[^<.,:;"')\]\s])/gi;
-    return escaped.replace(urlRegex, (matched) => {
+    const withLinks = escaped.replace(urlRegex, (matched) => {
         const href = (matched.startsWith('http://') || matched.startsWith('https://'))
             ? matched
             : `https://${matched}`;
         return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="dm-link" onclick="event.stopPropagation()">${matched}</a>`;
     });
+    return (typeof formatMentions === 'function') ? formatMentions(withLinks) : withLinks;
 }
 
 // Copy message text

@@ -845,27 +845,53 @@ def api_feed(request):
 @permission_classes([AllowAny])
 def api_search(request):
     """
-    Search users by username using case-insensitive partial match.
-    Does not expose sensitive fields.
+    Search users and/or posts by keyword, @mention, or #hashtag.
     """
     query = request.GET.get('q', '').strip()
-    if not query:
-        # Return popular/suggested users if no query provided
+    search_type = request.GET.get('type', '').strip().lower()
+    clean_query = query.lstrip('@').lstrip('#').strip()
+
+    # If searching posts explicitly
+    if search_type == 'posts':
+        posts = Post.objects.none()
+        if query:
+            posts = Post.objects.filter(
+                Q(content__icontains=query) | Q(content__icontains=f"#{clean_query}")
+            ).select_related('author', 'author__profile').prefetch_related('likes', 'comments').order_by('-created_at')[:30]
+        serializer = PostSerializer(posts, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # Search users
+    if not clean_query:
         users = User.objects.filter(is_active=True).select_related('profile')
         if request.user.is_authenticated:
             users = users.exclude(id=request.user.id)
         users = users.order_by('-date_joined')[:10]
     else:
         users = User.objects.filter(
-            username__icontains=query,
+            username__icontains=clean_query,
             is_active=True
         ).select_related('profile')
         if request.user.is_authenticated:
             users = users.exclude(id=request.user.id)
         users = users[:20]
 
-    serializer = UserPublicSerializer(users, many=True, context={'request': request})
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    user_serializer = UserPublicSerializer(users, many=True, context={'request': request})
+
+    if search_type == 'all':
+        posts = Post.objects.none()
+        if query:
+            posts = Post.objects.filter(
+                Q(content__icontains=query) | Q(content__icontains=f"#{clean_query}")
+            ).select_related('author', 'author__profile').prefetch_related('likes', 'comments').order_by('-created_at')[:20]
+        post_serializer = PostSerializer(posts, many=True, context={'request': request})
+        return Response({
+            'users': user_serializer.data,
+            'posts': post_serializer.data
+        }, status=status.HTTP_200_OK)
+
+    # Default returns user array for backward compatibility
+    return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 
 def touch_user_activity(user):
