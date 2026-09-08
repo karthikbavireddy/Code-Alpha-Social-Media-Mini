@@ -860,7 +860,17 @@ input, textarea, select {
     justify-content: space-between;
     margin-top: -50px;
     margin-bottom: 1rem;
+    gap: 1rem;
 }
+
+#profile-action-container {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 
 .profile-large-avatar {
     width: 105px;
@@ -1280,6 +1290,28 @@ input, textarea, select {
     }
     .profile-main-info {
         padding: 0 1rem 1.25rem 1rem;
+    }
+    .profile-avatar-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.85rem;
+        margin-top: -45px;
+        margin-bottom: 1rem;
+    }
+    #profile-action-container {
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+        gap: 0.6rem;
+    }
+    #profile-action-container .btn,
+    #profile-action-container a.btn {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.86rem;
+        white-space: nowrap;
     }
     .card {
         padding: 1rem;

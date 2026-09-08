@@ -65,9 +65,11 @@ function renderProfileHeader(data) {
 
     if (nameEl) {
         nameEl.innerHTML = `
-            ${escapeHtml(data.username)}
-            ${data.is_mutual_following ? '<span class="badge badge-primary" style="font-size: 0.72rem; vertical-align: middle; margin-left: 8px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;">Mutual Follower</span>' : ''}
-            ${!data.is_mutual_following && data.is_followed_by ? '<span class="badge" style="font-size: 0.72rem; vertical-align: middle; margin-left: 8px; background: rgba(255, 255, 255, 0.08); color: var(--text-muted);">Follows you</span>' : ''}
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span>${escapeHtml(data.username)}</span>
+                ${data.is_mutual_following ? '<span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 700;">Mutual Follower</span>' : ''}
+                ${!data.is_mutual_following && data.is_followed_by ? '<span class="badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); color: var(--text-muted);">Follows you</span>' : ''}
+            </div>
         `;
     }
     if (usernameEl) usernameEl.textContent = `@${data.username}`;
@@ -90,7 +92,7 @@ function renderProfileHeader(data) {
                 <button class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'}" id="follow-toggle-btn" onclick="toggleFollow('${data.username}')">
                     ${isFollowing ? 'Unfollow' : 'Follow'}
                 </button>
-                <a href="/messages/${encodeURIComponent(data.username)}/" class="btn btn-outline" id="profile-message-btn" style="margin-left: 0.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                <a href="/messages/${encodeURIComponent(data.username)}/" class="btn btn-outline" id="profile-message-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
                     💬 Message
                 </a>
             `;
