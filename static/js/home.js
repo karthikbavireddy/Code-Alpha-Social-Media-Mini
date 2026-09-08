@@ -291,7 +291,7 @@ function createPostCardElement(post) {
     if (post.image) {
         mediaHtml = `
             <div class="post-media-wrap">
-                <img src="${post.image}" alt="Post media" class="post-media-img" loading="lazy">
+                <img src="${post.image}" alt="Post media" class="post-media-img" loading="lazy" onerror="const w=this.closest('.post-media-wrap'); if(w) w.remove();">
             </div>
         `;
     }

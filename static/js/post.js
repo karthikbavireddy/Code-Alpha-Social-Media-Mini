@@ -65,7 +65,7 @@ function renderPost(post) {
         if (post.image) {
             mediaContainer.innerHTML = `
                 <div class="post-media-wrap">
-                    <img src="${post.image}" alt="Post media" class="post-media-img">
+                    <img src="${post.image}" alt="Post media" class="post-media-img" onerror="const w=this.closest('.post-media-wrap'); if(w) w.remove();">
                 </div>
             `;
         } else {
@@ -91,11 +91,6 @@ function renderPost(post) {
 }
 
 async function togglePostDetailLike() {
-    if (!currentUser) {
-        window.location.href = '/login/';
-        return;
-    }
-
     const likeBtn = document.getElementById('post-like-btn');
     const likeCountSpan = document.getElementById('post-like-count');
     if (!likeBtn) return;
@@ -104,7 +99,7 @@ async function togglePostDetailLike() {
 
     try {
         const data = await apiRequest(`/api/posts/${postId}/like/`, { method: 'POST' });
-        likeCountSpan.textContent = data.like_count;
+        if (likeCountSpan) likeCountSpan.textContent = data.like_count;
         const svg = likeBtn.querySelector('svg');
 
         if (data.liked) {
@@ -115,7 +110,12 @@ async function togglePostDetailLike() {
             if (svg) svg.setAttribute('fill', 'none');
         }
     } catch (err) {
-        showToast(err.message || 'Like action failed.', 'error');
+        if (err.status === 401) {
+            showToast('Please log in to like posts.', 'info');
+            setTimeout(() => { window.location.href = '/login/'; }, 600);
+        } else {
+            showToast(err.message || 'Like action failed.', 'error');
+        }
     } finally {
         likeBtn.disabled = false;
     }

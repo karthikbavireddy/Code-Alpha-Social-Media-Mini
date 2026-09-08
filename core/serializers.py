@@ -76,6 +76,7 @@ class PostSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
     author_id = serializers.ReadOnlyField(source='author.id')
     author_profile_picture = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
     like_count = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
     liked_by_current_user = serializers.SerializerMethodField()
@@ -91,6 +92,20 @@ class PostSerializer(serializers.ModelSerializer):
             'id', 'author', 'author_id', 'author_profile_picture',
             'created_at', 'like_count', 'comment_count', 'liked_by_current_user'
         ]
+
+    def get_image(self, obj):
+        if not obj.image:
+            return None
+        try:
+            url = obj.image.url
+            if not url or url.strip() in ('', '/media/'):
+                return None
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
 
     def get_author_profile_picture(self, obj):
         if hasattr(obj.author, 'profile') and obj.author.profile.profile_picture:
