@@ -54,9 +54,18 @@
                     <h2 style="font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">
                         Change Password
                     </h2>
-                    <p style="font-size: 0.86rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                    <p style="font-size: 0.86rem; color: var(--text-muted); margin-bottom: 1.25rem;">
                         Ensure your account stays secure with a strong password.
                     </p>
+
+                    <!-- Security Alert Notice -->
+                    <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.28); border-radius: var(--radius-md); padding: 0.9rem 1.1rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.85rem; max-width: 480px;">
+                        <span style="font-size: 1.3rem; line-height: 1;">🛡️</span>
+                        <div style="font-size: 0.82rem; color: #c7d2fe; line-height: 1.5;">
+                            <strong style="color: #ffffff; display: block; margin-bottom: 0.2rem;">Email Notification Active</strong>
+                            Whenever your password is changed, an automated security notification is immediately dispatched to your registered email (<span id="pwd-notify-email" style="font-weight: 600; color: #a5b4fc;">{{ user.email|default:"no email linked" }}</span>).
+                        </div>
+                    </div>
 
                     <form id="form-change-password" onsubmit="handleChangePassword(event)" style="max-width: 480px;">
                         <div class="form-group" style="margin-bottom: 1.25rem;">

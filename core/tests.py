@@ -235,3 +235,26 @@ class ConnectSphereTests(TestCase):
         self.assertEqual(response_ci.status_code, status.HTTP_200_OK)
         usernames_ci = [u['username'] for u in response_ci.data]
         self.assertIn('user_two', usernames_ci)
+
+    # 22. Password change with automated security email notification
+    def test_22_change_password_and_email_notification(self):
+        from django.core import mail
+        self.client.force_authenticate(user=self.user1)
+        response = self.client.post('/api/settings/change-password/', {
+            'current_password': 'Password123!',
+            'new_password': 'NewPassword456!',
+            'confirm_password': 'NewPassword456!'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['email_sent'])
+        self.assertEqual(response.data['email_recipient'], 'user1@example.com')
+
+        # Verify user password updated
+        self.user1.refresh_from_db()
+        self.assertTrue(self.user1.check_password('NewPassword456!'))
+
+        # Verify security notification email was sent
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Security Alert', mail.outbox[0].subject)
+        self.assertEqual(mail.outbox[0].to, ['user1@example.com'])
+        self.assertIn('user_one', mail.outbox[0].body)

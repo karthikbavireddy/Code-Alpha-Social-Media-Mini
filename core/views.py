@@ -1,8 +1,14 @@
+import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
+from django.utils import timezone
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -255,11 +261,193 @@ def api_update_profile(request):
     }, status=status.HTTP_200_OK)
 
 
+def send_password_change_notification(user, request=None):
+    """
+    Sends an automated security notification email to the user when their password is changed.
+    Includes device client info, IP address, and timestamp.
+    """
+    if not user.email:
+        return False
+
+    ip_address = 'Unknown'
+    user_agent = 'Unknown'
+    if request:
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip_address = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip_address = request.META.get('REMOTE_ADDR', 'Unknown')
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+
+    timestamp_str = timezone.now().strftime('%B %d, %Y at %H:%M UTC')
+
+    subject = 'Security Alert: ConnectSphere Password Changed'
+
+    text_message = (
+        f"Hello {user.username},\n\n"
+        f"This is a confirmation that the password for your ConnectSphere account (@{user.username}) "
+        f"was successfully updated on {timestamp_str}.\n\n"
+        f"Security Details:\n"
+        f"- Time: {timestamp_str}\n"
+        f"- IP Address: {ip_address}\n"
+        f"- Device / Client: {user_agent}\n\n"
+        f"If you initiated this change, no further action is required.\n\n"
+        f"CRITICAL SECURITY NOTICE:\n"
+        f"If you did NOT change your password, someone else may have accessed your account. "
+        f"Please reset your password immediately or contact our support.\n\n"
+        f"Best regards,\n"
+        f"ConnectSphere Security Team"
+    )
+
+    html_message = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Security Alert</title>
+      <style>
+        body {{
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          background-color: #0b0f19;
+          color: #f3f4f6;
+          margin: 0;
+          padding: 24px;
+        }}
+        .email-container {{
+          max-width: 560px;
+          margin: 0 auto;
+          background-color: #111827;
+          border: 1px solid #1f2937;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }}
+        .header {{
+          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+          padding: 30px 24px;
+          text-align: center;
+          color: #ffffff;
+        }}
+        .header h1 {{
+          margin: 0;
+          font-size: 22px;
+          font-weight: 800;
+          letter-spacing: -0.5px;
+        }}
+        .header p {{
+          margin: 6px 0 0 0;
+          font-size: 13px;
+          opacity: 0.9;
+        }}
+        .body-content {{
+          padding: 28px 24px;
+          font-size: 15px;
+          line-height: 1.6;
+          color: #d1d5db;
+        }}
+        .badge {{
+          display: inline-block;
+          background: rgba(99, 102, 241, 0.15);
+          color: #818cf8;
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          padding: 4px 12px;
+          border-radius: 9999px;
+          font-size: 12px;
+          font-weight: 600;
+          margin-bottom: 16px;
+        }}
+        .details-box {{
+          background: #1f2937;
+          border-radius: 12px;
+          padding: 18px;
+          margin: 20px 0;
+          border-left: 4px solid #6366f1;
+        }}
+        .detail-row {{
+          margin: 6px 0;
+          font-size: 13px;
+          color: #9ca3af;
+        }}
+        .detail-row strong {{
+          color: #f3f4f6;
+          display: inline-block;
+          min-width: 110px;
+        }}
+        .warning-box {{
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #fca5a5;
+          border-radius: 12px;
+          padding: 16px;
+          margin: 20px 0;
+          font-size: 13.5px;
+          line-height: 1.5;
+        }}
+        .footer {{
+          padding: 20px 24px;
+          background-color: #0f172a;
+          text-align: center;
+          font-size: 12px;
+          color: #6b7280;
+          border-top: 1px solid #1f2937;
+        }}
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <h1>ConnectSphere Security</h1>
+          <p>Automated Account Security Alert</p>
+        </div>
+        <div class="body-content">
+          <div class="badge">&#128274; Password Updated Successfully</div>
+          <p>Hello <strong style="color: #ffffff;">{user.username}</strong>,</p>
+          <p>We are notifying you that your account password was changed successfully.</p>
+          
+          <div class="details-box">
+            <div class="detail-row"><strong>Time (UTC):</strong> {timestamp_str}</div>
+            <div class="detail-row"><strong>IP Address:</strong> {ip_address}</div>
+            <div class="detail-row"><strong>Client Device:</strong> {user_agent}</div>
+          </div>
+
+          <p>If you performed this action, you can safely disregard this message.</p>
+
+          <div class="warning-box">
+            <strong style="color: #f87171; display: block; margin-bottom: 4px;">&#9888;&#65039; Did not make this change?</strong>
+            If you did not initiate this change, your account credentials may be compromised. Please reset your password immediately or contact our support team to secure your account.
+          </div>
+        </div>
+        <div class="footer">
+          &copy; ConnectSphere &bull; This is an automated security notice sent to {user.email}.
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+
+    try:
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'ConnectSphere Security <no-reply@connectsphere.com>'
+        send_mail(
+            subject=subject,
+            message=text_message,
+            from_email=from_email,
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to send password change email notification to {user.email}: {e}")
+        return False
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_change_password(request):
     """
     Securely change user password after validating current password.
+    Sends an automated email notification to the user's registered email.
     """
     user = request.user
     current_password = request.data.get('current_password', '')
@@ -286,8 +474,19 @@ def api_change_password(request):
     Token.objects.filter(user=user).delete()
     token = Token.objects.create(user=user)
 
+    # Send security email notification
+    email_sent = False
+    if user.email:
+        email_sent = send_password_change_notification(user, request)
+
+    msg = 'Password changed successfully.'
+    if user.email:
+        msg += f' A security notification was sent to {user.email}.'
+
     return Response({
-        'message': 'Password changed successfully.',
+        'message': msg,
+        'email_sent': email_sent,
+        'email_recipient': user.email or None,
         'token': token.key
     }, status=status.HTTP_200_OK)
 

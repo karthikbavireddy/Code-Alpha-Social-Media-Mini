@@ -43,6 +43,12 @@ async function loadInitialSettings() {
         if (usernameInput) usernameInput.value = currentUserData.username || '';
         if (emailInput) emailInput.value = currentUserData.email || '';
 
+        // Update password notification banner email
+        const notifyEmailSpan = document.getElementById('pwd-notify-email');
+        if (notifyEmailSpan) {
+            notifyEmailSpan.textContent = currentUserData.email || 'no email linked';
+        }
+
         // Populate Profile fields
         const bioInput = document.getElementById('settings-bio');
         const avatarPreview = document.getElementById('settings-avatar-preview');
@@ -142,6 +148,10 @@ async function handleUpdateAccount(e) {
         });
 
         showToast(res.message || 'Account updated successfully!', 'success');
+        const notifyEmailSpan = document.getElementById('pwd-notify-email');
+        if (notifyEmailSpan && email) {
+            notifyEmailSpan.textContent = email;
+        }
         // If username changed, update current URL state
         if (res.user && res.user.username !== currentUserData?.username) {
             setTimeout(() => {
