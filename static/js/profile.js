@@ -210,24 +210,130 @@ function createPostCardElement(post) {
                     </svg>
                     <span id="like-count-${post.id}">${post.like_count}</span>
                 </button>
-                <span class="btn-action">
-                    💬 ${post.comment_count}
-                </span>
+                <button class="btn-action" onclick="toggleCommentsSection(${post.id})" title="Comments">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
+                    <span id="comment-count-${post.id}">${post.comment_count}</span>
+                </button>
             </div>
             <a href="/posts/${post.id}/" class="btn btn-outline btn-sm">View Post</a>
+        </div>
+
+        <div class="comments-section" id="comments-section-${post.id}">
+            <div class="comment-input-row">
+                <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Write a comment..." onkeydown="if(event.key==='Enter') submitComment(${post.id})">
+                <button class="btn btn-primary btn-sm" onclick="submitComment(${post.id})">Send</button>
+            </div>
+            <div class="comment-list" id="comment-list-${post.id}">
+                <!-- Populated dynamically -->
+            </div>
         </div>
     `;
 
     return card;
 }
 
-// Like Toggle on profile posts
-async function toggleLike(postId) {
-    if (!currentUser) {
-        window.location.href = '/login/';
+// Interactive Comments Drawer on profile posts
+async function toggleCommentsSection(postId) {
+    const section = document.getElementById(`comments-section-${postId}`);
+    if (!section) return;
+
+    if (section.classList.contains('open')) {
+        section.classList.remove('open');
+    } else {
+        section.classList.add('open');
+        await loadPostComments(postId);
+    }
+}
+
+async function loadPostComments(postId) {
+    const list = document.getElementById(`comment-list-${postId}`);
+    if (!list) return;
+
+    list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">Loading comments...</p>';
+
+    try {
+        const comments = await apiRequest(`/api/posts/${postId}/comments/`);
+        if (!comments || comments.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem 0;">No comments yet. Be the first!</p>';
+            return;
+        }
+
+        list.innerHTML = '';
+        comments.forEach(c => {
+            list.appendChild(createCommentElement(c));
+        });
+    } catch (err) {
+        list.innerHTML = `<p style="color: var(--danger); font-size: 0.85rem;">Error loading comments: ${err.message}</p>`;
+    }
+}
+
+async function submitComment(postId) {
+    const input = document.getElementById(`comment-input-${postId}`);
+    const list = document.getElementById(`comment-list-${postId}`);
+    const countSpan = document.getElementById(`comment-count-${postId}`);
+    if (!input) return;
+
+    const text = input.value.trim();
+    if (!text) {
+        showToast('Comment text cannot be empty.', 'error');
         return;
     }
 
+    try {
+        input.disabled = true;
+        const newComment = await apiRequest(`/api/posts/${postId}/comments/`, {
+            method: 'POST',
+            body: { text }
+        });
+
+        input.value = '';
+        input.disabled = false;
+
+        const emptyMsg = list.querySelector('p');
+        if (emptyMsg) emptyMsg.remove();
+
+        list.appendChild(createCommentElement(newComment));
+
+        if (countSpan) {
+            countSpan.textContent = parseInt(countSpan.textContent || '0', 10) + 1;
+        }
+
+        showToast('Comment posted!', 'success');
+    } catch (err) {
+        input.disabled = false;
+        if (err.status === 401) {
+            showToast('Please log in to post comments.', 'info');
+            setTimeout(() => { window.location.href = '/login/'; }, 600);
+        } else {
+            showToast(err.message || 'Failed to post comment.', 'error');
+        }
+    }
+}
+
+function createCommentElement(comment) {
+    const div = document.createElement('div');
+    div.className = 'comment-item';
+
+    const avatarHtml = renderAvatarHtml(comment.author_profile_picture, comment.author, 'comment-avatar');
+
+    div.innerHTML = `
+        <a href="/profile/${comment.author}/">${avatarHtml}</a>
+        <div class="comment-body">
+            <div class="comment-header">
+                <a href="/profile/${comment.author}/" class="comment-author">@${comment.author}</a>
+                <span class="comment-date">${formatTimestamp(comment.created_at)}</span>
+            </div>
+            <div class="comment-text">${escapeHtml(comment.text)}</div>
+        </div>
+    `;
+
+    return div;
+}
+
+// Like Toggle on profile posts
+async function toggleLike(postId) {
     const likeBtn = document.getElementById(`like-btn-${postId}`);
     const likeCountSpan = document.getElementById(`like-count-${postId}`);
     if (!likeBtn) return;
@@ -247,7 +353,12 @@ async function toggleLike(postId) {
             svg.setAttribute('fill', 'none');
         }
     } catch (err) {
-        showToast(err.message || 'Error updating like.', 'error');
+        if (err.status === 401) {
+            showToast('Please log in to like posts.', 'info');
+            setTimeout(() => { window.location.href = '/login/'; }, 600);
+        } else {
+            showToast(err.message || 'Error updating like.', 'error');
+        }
     } finally {
         likeBtn.disabled = false;
     }
