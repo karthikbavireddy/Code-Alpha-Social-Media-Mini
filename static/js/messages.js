@@ -227,6 +227,9 @@ function renderContacts() {
 async function selectConversation(username) {
     activePartner = username;
 
+    const layout = document.querySelector('.dm-layout');
+    if (layout) layout.classList.add('chat-open');
+
     // Show chat room, hide empty state
     const room = document.getElementById('dm-chat-room');
     const emptyState = document.getElementById('dm-empty-state');
@@ -246,6 +249,19 @@ async function selectConversation(username) {
     // Focus input
     const input = document.getElementById('dm-message-input');
     if (input) input.focus();
+}
+
+function closeChatMobile() {
+    activePartner = null;
+    const layout = document.querySelector('.dm-layout');
+    if (layout) layout.classList.remove('chat-open');
+    const room = document.getElementById('dm-chat-room');
+    const emptyState = document.getElementById('dm-empty-state');
+    if (room) room.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    window.history.replaceState(null, '', '/messages/');
+    renderConversations();
+    renderContacts();
 }
 
 // Load message history for a user
