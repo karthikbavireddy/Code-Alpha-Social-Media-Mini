@@ -41,6 +41,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         await loadConversations(true);
     }, 2500);
+
+    // Hardware / Browser back button on mobile: smoothly close active chat
+    window.addEventListener('popstate', (e) => {
+        if (window.innerWidth <= 768) {
+            const layout = document.querySelector('.dm-layout');
+            if (layout && layout.classList.contains('chat-open')) {
+                closeChatMobile(true);
+            }
+        }
+    });
+
+    // Mobile Virtual Keyboard Handling
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                const layout = document.querySelector('.dm-layout.chat-open');
+                if (layout) {
+                    layout.style.height = `${window.visualViewport.height}px`;
+                    scrollToBottom();
+                }
+            }
+        });
+    }
 });
 
 // Switch tabs between "Chats" and "Friends & Following"
@@ -231,6 +254,10 @@ function renderContacts() {
 async function selectConversation(username) {
     activePartner = username;
 
+    if (window.innerWidth <= 768) {
+        document.body.classList.add('dm-chat-active');
+    }
+
     const layout = document.querySelector('.dm-layout');
     if (layout) layout.classList.add('chat-open');
 
@@ -258,8 +285,12 @@ async function selectConversation(username) {
     renderConversations();
     renderContacts();
 
-    // Update browser URL silently
-    window.history.replaceState(null, '', `/messages/${encodeURIComponent(username)}/`);
+    // Update browser URL
+    if (window.innerWidth <= 768) {
+        window.history.pushState({ chat: username }, '', `/messages/${encodeURIComponent(username)}/`);
+    } else {
+        window.history.replaceState(null, '', `/messages/${encodeURIComponent(username)}/`);
+    }
 
     // Load messages
     await loadMessagesForUser(username);
@@ -269,15 +300,25 @@ async function selectConversation(username) {
     if (input) input.focus();
 }
 
-function closeChatMobile() {
+function closeChatMobile(fromPopState = false) {
     activePartner = null;
+    document.body.classList.remove('dm-chat-active');
+
     const layout = document.querySelector('.dm-layout');
-    if (layout) layout.classList.remove('chat-open');
+    if (layout) {
+        layout.classList.remove('chat-open');
+        layout.style.height = '';
+    }
+
     const room = document.getElementById('dm-chat-room');
     const emptyState = document.getElementById('dm-empty-state');
     if (room) room.style.display = 'none';
     if (emptyState) emptyState.style.display = 'flex';
-    window.history.replaceState(null, '', '/messages/');
+
+    if (!fromPopState) {
+        window.history.replaceState(null, '', '/messages/');
+    }
+
     renderConversations();
     renderContacts();
 }
@@ -515,13 +556,13 @@ function renderMessages() {
                                 <div class="dm-reply-quote-text">${escapeHtml(m.reply_to_content || 'Quoted message')}</div>
                             </div>
                         ` : ''}
-                        <div>${formatMessageContent(rawContent)}</div>
+                        <div class="dm-bubble-text">${formatMessageContent(rawContent)}</div>
                     </div>
                 </div>
                 <div class="dm-time">
-                    ${formatDmTime(m.created_at)}
+                    <span>${formatDmTime(m.created_at)}</span>
                     ${m.is_edited ? '<span class="dm-edited-tag">(edited)</span>' : ''}
-                    ${isMine ? (m.is_read ? ' ✓✓' : ' ✓') : ''}
+                    ${isMine ? (m.is_read ? '<span class="dm-tick-read" title="Read">✓✓</span>' : '<span class="dm-tick-sent" title="Sent">✓</span>') : ''}
                 </div>
             </div>
         `;
@@ -851,7 +892,9 @@ async function handleFollowActivePartner() {
 function scrollToBottom() {
     const container = document.getElementById('dm-messages-container');
     if (container) {
-        container.scrollTop = container.scrollHeight;
+        requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+        });
     }
 }
 

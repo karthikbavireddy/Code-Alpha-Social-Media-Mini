@@ -808,14 +808,17 @@ export default function MessagesPage({ targetUser, onOpenProfile }) {
                   >
                     <div
                       style={{
-                        maxWidth: '72%',
+                        width: 'fit-content',
+                        maxWidth: '85%',
                         padding: '10px 16px',
                         borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                         background: isMine ? 'var(--gradient-brand)' : 'rgba(255, 255, 255, 0.08)',
                         color: '#fff',
                         fontSize: '0.92rem',
                         lineHeight: '1.45',
-                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        wordBreak: 'normal',
+                        whiteSpace: 'pre-wrap',
                         boxShadow: isMine ? '0 4px 14px rgba(99, 102, 241, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.3)',
                       }}
                     >

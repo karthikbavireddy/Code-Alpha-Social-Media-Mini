@@ -114,7 +114,7 @@
                 </div>
 
                 <!-- Messages Stream -->
-                <div id="dm-messages-container" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div id="dm-messages-container" class="dm-messages-container">
                     <!-- Injected message bubbles -->
                 </div>
 
@@ -235,12 +235,48 @@
     border: 1px solid rgba(99, 102, 241, 0.35);
 }
 
+.dm-messages-container {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 0;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+.dm-messages-container::after {
+    content: '';
+    display: block;
+    min-height: 12px;
+    width: 100%;
+    flex-shrink: 0;
+}
+
 .dm-bubble {
-    max-width: 72%;
-    padding: 0.75rem 1.15rem;
+    width: fit-content;
+    max-width: 100%;
+    min-width: 0;
+    flex-shrink: 0;
+    padding: 0.65rem 1.05rem;
     font-size: 0.92rem;
-    line-height: 1.5;
-    word-break: break-word;
+    line-height: 1.45;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+    box-sizing: border-box;
+}
+.dm-bubble-text {
+    width: fit-content;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+    white-space: pre-wrap;
+    font-size: inherit;
+    line-height: inherit;
+    display: block;
 }
 .dm-bubble-mine {
     background: var(--primary);
@@ -257,10 +293,25 @@
     border: 1px solid var(--border-subtle);
 }
 .dm-time {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
-    margin-top: 3px;
+    margin-top: 2px;
     padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    user-select: none;
+}
+.dm-tick-read {
+    color: #818cf8;
+    font-weight: 700;
+    font-size: 0.76rem;
+    letter-spacing: -1px;
+}
+.dm-tick-sent {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.76rem;
 }
 
 /* Chat Top Header & Active Status */
@@ -500,7 +551,8 @@
     color: #93c5fd !important;
     text-decoration: underline !important;
     text-underline-offset: 3px;
-    word-break: break-all;
+    overflow-wrap: break-word;
+    word-break: normal;
     font-weight: 500;
     cursor: pointer;
     transition: color 0.15s ease;
@@ -537,7 +589,9 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    width: fit-content;
     max-width: 80%;
+    min-width: 0;
     transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 .dm-msg-actions {
@@ -720,44 +774,168 @@
     font-style: italic;
 }
 
-/* Mobile Responsiveness */
+/* Mobile Responsiveness & App-like Full Screen Chat */
 @media (max-width: 768px) {
+    /* Conversation & Contacts List Mode */
     .dm-page-container {
-        padding: 0 0.5rem;
-        margin-top: 0.75rem;
-        margin-bottom: 5.5rem;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: calc(100dvh - 60px - 64px) !important;
+        height: calc(100vh - 124px) !important;
+        overflow: hidden !important;
     }
+
     .dm-layout {
         grid-template-columns: 1fr !important;
-        height: calc(100vh - 140px) !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
     }
-    .dm-layout.chat-open .dm-sidebar {
-        display: none !important;
+
+    .dm-sidebar {
+        height: 100% !important;
+        border-right: none !important;
+        display: flex !important;
     }
-    .dm-layout.chat-open #dm-back-to-list-btn {
-        display: inline-flex !important;
-    }
+
     .dm-layout:not(.chat-open) .dm-chat-area {
         display: none !important;
     }
+
+    /* Dedicated Active Chat Room View - Full Viewport */
+    .dm-layout.chat-open {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        height: 100vh !important;
+        z-index: 1050 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #090d16 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .dm-layout.chat-open .dm-sidebar {
+        display: none !important;
+    }
+
+    .dm-layout.chat-open .dm-chat-area {
+        display: flex !important;
+        height: 100% !important;
+        width: 100% !important;
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+    }
+
+    .dm-layout.chat-open #dm-chat-room {
+        display: flex !important;
+        height: 100% !important;
+        width: 100% !important;
+        min-height: 0 !important;
+    }
+
+    /* Fixed/Sticky Chat Header at the top */
     .dm-chat-header {
-        padding: 0.65rem 0.75rem;
-        gap: 0.45rem;
+        padding: 0.65rem 0.85rem !important;
+        padding-top: max(0.65rem, env(safe-area-inset-top, 0.65rem)) !important;
+        background: #0f172a !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 25 !important;
+        flex-shrink: 0 !important;
+        gap: 0.5rem !important;
     }
+
     .dm-header-left {
-        gap: 0.45rem;
+        gap: 0.5rem !important;
     }
-    .dm-back-btn {
-        padding: 0.45rem 0.5rem;
+
+    .dm-layout.chat-open #dm-back-to-list-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: #fff !important;
+        flex-shrink: 0 !important;
     }
+
     .dm-back-text {
-        display: none;
+        display: none !important;
     }
+
+    /* Middle Scrollable Messages Container */
+    .dm-messages-container {
+        padding: 0.85rem 0.75rem 1.25rem 0.75rem !important;
+        gap: 0.65rem !important;
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* Bubbles on mobile: comfortable width with no mid-word cuts */
     .dm-bubble-wrapper {
-        max-width: 90%;
+        width: fit-content !important;
+        max-width: 86% !important;
     }
+
+    .dm-bubble {
+        width: fit-content !important;
+        max-width: 100% !important;
+        flex-shrink: 0 !important;
+        padding: 0.62rem 0.95rem !important;
+        font-size: 0.9rem !important;
+        line-height: 1.45 !important;
+        border-radius: 16px !important;
+    }
+
+    .dm-bubble-mine {
+        border-bottom-right-radius: 4px !important;
+    }
+
+    .dm-bubble-theirs {
+        border-bottom-left-radius: 4px !important;
+    }
+
     .dm-msg-actions {
-        display: none !important; /* On touch mobile, drag or tap message */
+        display: none !important; /* Touch mobile: drag to reply */
+    }
+
+    /* Fixed Input Form at bottom */
+    #dm-send-form {
+        padding: 0.65rem 0.85rem !important;
+        padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0.65rem)) !important;
+        background: #0f172a !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        flex-shrink: 0 !important;
+        gap: 0.5rem !important;
+    }
+
+    #dm-message-input {
+        padding: 0.65rem 1rem !important;
+        font-size: 0.92rem !important;
+    }
+
+    #dm-send-btn {
+        padding: 0.65rem 1.15rem !important;
+        font-size: 0.88rem !important;
     }
 }
 
@@ -776,7 +954,7 @@
         border-radius: 50% !important;
     }
     .dm-partner-name-text {
-        max-width: 140px;
+        max-width: 130px;
     }
 }
 </style>
@@ -787,5 +965,5 @@
     window.TARGET_USERNAME = "{{ target_username }}";
     window.CURRENT_USERNAME = "{{ request.user.username }}";
 </script>
-<script src="{% static 'js/messages.js' %}?v=2.6"></script>
+<script src="{% static 'js/messages.js' %}?v=2.8"></script>
 {% endblock %}
