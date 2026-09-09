@@ -260,9 +260,45 @@
         </div>
     </div>
 
+    <!-- Universal Followers & Following Modal -->
+    <div class="modal-overlay" id="follow-list-modal" onclick="if(event.target === this) closeFollowListModal()">
+        <div class="modal-card follow-list-card">
+            <div class="modal-header follow-list-header">
+                <div class="follow-modal-tabs">
+                    <button type="button" class="follow-modal-tab active" id="modal-tab-followers" onclick="switchFollowListTab('followers')">
+                        Followers (<span id="modal-followers-tab-count">0</span>)
+                    </button>
+                    <button type="button" class="follow-modal-tab" id="modal-tab-following" onclick="switchFollowListTab('following')">
+                        Following (<span id="modal-following-tab-count">0</span>)
+                    </button>
+                </div>
+                <button type="button" class="modal-close" onclick="closeFollowListModal()">&times;</button>
+            </div>
+
+            <div class="follow-modal-search-wrap">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="follow-modal-search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="follow-modal-search-input" placeholder="Search followers & following..." oninput="filterFollowList()" class="follow-modal-search-input">
+            </div>
+
+            <div class="follow-list-body" id="follow-list-body">
+                <div class="follow-list-loading">
+                    <div class="notif-spinner"></div>
+                    <span>Loading users...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Common JavaScript -->
+    <script>
+        {% if user.is_authenticated %}
+        window.CURRENT_USER_USERNAME = "{{ user.username }}";
+        {% else %}
+        window.CURRENT_USER_USERNAME = null;
+        {% endif %}
+    </script>
     <script src="{% static 'libs/cropper/cropper.min.js' %}"></script>
-    <script src="{% static 'js/common.js' %}?v=2.8"></script>
+    <script src="{% static 'js/common.js' %}?v=2.9"></script>
     <script src="{% static 'js/image_editor.js' %}?v=2.8"></script>
     {% block extra_js %}{% endblock %}
 </body>

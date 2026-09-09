@@ -667,3 +667,278 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 20000);
     }
 });
+
+// ==========================================
+// HTML ESCAPE HELPER
+// ==========================================
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// ==========================================
+// UNIVERSAL FOLLOWERS & FOLLOWING MODAL SYSTEM
+// ==========================================
+let currentFollowTab = 'followers'; // 'followers' | 'following'
+let currentFollowTarget = null;
+let loadedFollowList = [];
+
+async function openFollowListModal(initialTab = 'followers', username = null) {
+    const modal = document.getElementById('follow-list-modal');
+    if (!modal) return;
+
+    // Determine target username
+    currentFollowTarget = username || 
+        window.TARGET_USERNAME || 
+        window.CURRENT_USER_USERNAME || 
+        (typeof currentUser !== 'undefined' && currentUser ? currentUser.username : null) ||
+        (document.getElementById('sidebar-username')?.textContent?.trim()) ||
+        (document.getElementById('profile-display-name')?.textContent?.trim());
+
+    if (!currentFollowTarget || currentFollowTarget === 'Loading...') {
+        console.error('No valid user found to load follow list.');
+        return;
+    }
+
+    modal.classList.add('active');
+
+    // Sync modal tab counts with page stats if present
+    const followerCountEl = document.getElementById('profile-followers-count') || document.getElementById('sidebar-follower-count');
+    const followingCountEl = document.getElementById('profile-following-count') || document.getElementById('sidebar-following-count');
+    const tabFollowerCount = document.getElementById('modal-followers-tab-count');
+    const tabFollowingCount = document.getElementById('modal-following-tab-count');
+
+    if (tabFollowerCount && followerCountEl) tabFollowerCount.textContent = followerCountEl.textContent;
+    if (tabFollowingCount && followingCountEl) tabFollowingCount.textContent = followingCountEl.textContent;
+
+    await switchFollowListTab(initialTab);
+}
+
+function closeFollowListModal() {
+    const modal = document.getElementById('follow-list-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    const searchInput = document.getElementById('follow-modal-search-input');
+    if (searchInput) searchInput.value = '';
+}
+
+async function switchFollowListTab(tab) {
+    currentFollowTab = tab;
+
+    const tabFollowers = document.getElementById('modal-tab-followers');
+    const tabFollowing = document.getElementById('modal-tab-following');
+    const searchInput = document.getElementById('follow-modal-search-input');
+    if (searchInput) searchInput.value = '';
+
+    if (tab === 'followers') {
+        tabFollowers?.classList.add('active');
+        tabFollowing?.classList.remove('active');
+    } else {
+        tabFollowing?.classList.add('active');
+        tabFollowers?.classList.remove('active');
+    }
+
+    const bodyContainer = document.getElementById('follow-list-body');
+    if (!bodyContainer) return;
+
+    bodyContainer.innerHTML = `
+        <div class="follow-list-loading">
+            <div class="notif-spinner"></div>
+            <span>Loading ${tab}...</span>
+        </div>
+    `;
+
+    try {
+        const endpoint = `/api/users/${encodeURIComponent(currentFollowTarget)}/${tab}/`;
+        const data = await apiRequest(endpoint);
+        loadedFollowList = (data && data.results) ? data.results : [];
+
+        // Update tab count
+        if (tab === 'followers') {
+            const countEl = document.getElementById('modal-followers-tab-count');
+            if (countEl) countEl.textContent = data.count ?? loadedFollowList.length;
+        } else {
+            const countEl = document.getElementById('modal-following-tab-count');
+            if (countEl) countEl.textContent = data.count ?? loadedFollowList.length;
+        }
+
+        renderFollowList(loadedFollowList);
+    } catch (err) {
+        bodyContainer.innerHTML = `
+            <div class="follow-list-empty">
+                <div class="empty-icon" style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+                <p>Failed to load ${tab}.</p>
+                <button type="button" class="btn btn-outline btn-xs" onclick="switchFollowListTab('${tab}')" style="margin-top: 0.5rem;">Try again</button>
+            </div>
+        `;
+    }
+}
+
+function filterFollowList() {
+    const query = (document.getElementById('follow-modal-search-input')?.value || '').trim().toLowerCase();
+    if (!query) {
+        renderFollowList(loadedFollowList);
+        return;
+    }
+
+    const filtered = loadedFollowList.filter(user => {
+        const usernameMatch = user.username && user.username.toLowerCase().includes(query);
+        const bioMatch = user.bio && user.bio.toLowerCase().includes(query);
+        return usernameMatch || bioMatch;
+    });
+
+    renderFollowList(filtered, true);
+}
+
+function renderFollowList(users, isFiltered = false) {
+    const bodyContainer = document.getElementById('follow-list-body');
+    if (!bodyContainer) return;
+
+    if (!users || users.length === 0) {
+        if (isFiltered) {
+            bodyContainer.innerHTML = `
+                <div class="follow-list-empty">
+                    <p>No matching members found.</p>
+                </div>
+            `;
+        } else {
+            const label = currentFollowTab === 'followers' ? 'followers' : 'following';
+            bodyContainer.innerHTML = `
+                <div class="follow-list-empty">
+                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom: 0.6rem;">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <h4 style="margin: 0 0 0.3rem 0; font-size: 0.95rem; color: #ffffff;">No ${label} yet</h4>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">${currentFollowTab === 'followers' ? `@${escapeHtml(currentFollowTarget)} does not have any followers yet.` : `@${escapeHtml(currentFollowTarget)} is not following anyone yet.`}</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
+    const myUsername = (window.CURRENT_USER_USERNAME || (typeof currentUser !== 'undefined' && currentUser ? currentUser.username : '')).toLowerCase();
+
+    const html = users.map(user => {
+        const isSelf = myUsername && myUsername === user.username.toLowerCase();
+        const avatarHtml = renderAvatarHtml(user.profile_picture, user.username, 'follow-user-avatar');
+
+        let badgeHtml = '';
+        if (user.is_mutual_following) {
+            badgeHtml = `<span class="follow-user-badge mutual-badge">Mutual</span>`;
+        } else if (user.is_followed_by) {
+            badgeHtml = `<span class="follow-user-badge follows-you-badge">Follows you</span>`;
+        }
+
+        let actionBtnHtml = '';
+        if (myUsername && !isSelf) {
+            const isFollowing = !!user.is_following;
+            actionBtnHtml = `
+                <button type="button" class="btn ${isFollowing ? 'btn-outline' : 'btn-primary'} btn-xs follow-item-action-btn"
+                    id="modal-follow-btn-${user.username}"
+                    onclick="toggleFollowInModal('${user.username}')">
+                    ${isFollowing ? 'Following' : 'Follow'}
+                </button>
+            `;
+        }
+
+        return `
+            <div class="follow-user-item" data-username="${escapeHtml(user.username)}">
+                <a href="/profile/${encodeURIComponent(user.username)}/" class="follow-user-link">
+                    ${avatarHtml}
+                    <div class="follow-user-info">
+                        <div class="follow-user-name-row">
+                            <span class="follow-user-username">@${escapeHtml(user.username)}</span>
+                            ${badgeHtml}
+                        </div>
+                        ${user.bio ? `<div class="follow-user-bio">${escapeHtml(user.bio)}</div>` : ''}
+                    </div>
+                </a>
+                <div class="follow-user-action">
+                    ${actionBtnHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    bodyContainer.innerHTML = html;
+}
+
+async function toggleFollowInModal(username) {
+    const btn = document.getElementById(`modal-follow-btn-${username}`);
+    if (!btn) return;
+
+    try {
+        btn.disabled = true;
+        const res = await apiRequest(`/api/users/${encodeURIComponent(username)}/follow/`, { method: 'POST' });
+
+        const isFollowing = res.following;
+        if (isFollowing) {
+            btn.className = 'btn btn-outline btn-xs follow-item-action-btn';
+            btn.textContent = 'Following';
+            showToast(`Following @${username}`, 'success');
+        } else {
+            btn.className = 'btn btn-primary btn-xs follow-item-action-btn';
+            btn.textContent = 'Follow';
+            showToast(`Unfollowed @${username}`, 'info');
+        }
+
+        // Update in-memory user object
+        const userObj = loadedFollowList.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (userObj) {
+            userObj.is_following = isFollowing;
+        }
+
+        // 1. Sync following count on home page sidebar if present
+        const sidebarFollowingCount = document.getElementById('sidebar-following-count');
+        if (sidebarFollowingCount) {
+            let count = parseInt(sidebarFollowingCount.textContent || '0', 10);
+            sidebarFollowingCount.textContent = isFollowing ? (count + 1) : Math.max(0, count - 1);
+        }
+
+        // 2. If on profile page and the target user is the one followed/unfollowed:
+        if (window.TARGET_USERNAME && window.TARGET_USERNAME.toLowerCase() === username.toLowerCase()) {
+            const mainFollowBtn = document.getElementById('follow-toggle-btn');
+            const followerCountEl = document.getElementById('profile-followers-count');
+            const tabFollowerCount = document.getElementById('modal-followers-tab-count');
+            if (mainFollowBtn) {
+                mainFollowBtn.className = isFollowing ? 'btn btn-outline' : 'btn btn-primary';
+                mainFollowBtn.textContent = isFollowing ? 'Unfollow' : 'Follow';
+            }
+            if (followerCountEl && res.follower_count !== undefined) followerCountEl.textContent = res.follower_count;
+            if (tabFollowerCount && res.follower_count !== undefined) tabFollowerCount.textContent = res.follower_count;
+        }
+
+        // 3. If viewing own profile and in following tab:
+        const myUsername = (window.CURRENT_USER_USERNAME || '').toLowerCase();
+        if (window.TARGET_USERNAME && window.TARGET_USERNAME.toLowerCase() === myUsername) {
+            const followingCountEl = document.getElementById('profile-following-count');
+            const tabFollowingCount = document.getElementById('modal-following-tab-count');
+            let currentCount = parseInt(followingCountEl?.textContent || '0', 10);
+            currentCount = isFollowing ? (currentCount + 1) : Math.max(0, currentCount - 1);
+            if (followingCountEl) followingCountEl.textContent = currentCount;
+            if (tabFollowingCount) tabFollowingCount.textContent = currentCount;
+        }
+
+    } catch (err) {
+        showToast(err.message || 'Follow action failed.', 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeFollowListModal();
+    }
+});
+
