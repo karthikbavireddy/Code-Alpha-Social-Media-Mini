@@ -50,8 +50,9 @@ urlpatterns = [
     # Feed
     path('api/feed/', views.api_feed, name='api_feed'),
 
-    # Search
+    # Search & Hashtags
     path('api/search/', views.api_search, name='api_search'),
+    path('api/hashtags/', views.api_hashtags, name='api_hashtags'),
 
     # Direct Messages
     path('api/conversations/', views.api_conversations, name='api_conversations'),

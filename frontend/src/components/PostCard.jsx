@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import CommentList from './CommentList';
+import HashtagSuggestionBar from './HashtagSuggestionBar';
 import { Heart, MessageCircle, Share2, Trash2, MoreHorizontal, Edit2 } from 'lucide-react';
 
 function timeAgo(dateString) {
@@ -33,6 +34,7 @@ export default function PostCard({ post, onPostDeleted, onOpenProfile, onOpenDet
   const [isEditing, setIsEditing] = useState(false);
   const [editContentText, setEditContentText] = useState(post.content);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editTextareaRef = useRef(null);
 
   // Author details (backend serializer handles user nested or author_username)
   const authorUsername = post.author?.username || post.author_username || 'anonymous';
@@ -231,6 +233,7 @@ export default function PostCard({ post, onPostDeleted, onOpenProfile, onOpenDet
       {isEditing ? (
         <div style={{ marginBottom: '16px', background: 'rgba(255, 255, 255, 0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-glow)' }}>
           <textarea
+            ref={editTextareaRef}
             className="input-field"
             value={editContentText}
             onChange={(e) => setEditContentText(e.target.value)}
@@ -238,6 +241,7 @@ export default function PostCard({ post, onPostDeleted, onOpenProfile, onOpenDet
             style={{ marginBottom: '10px' }}
             autoFocus
           />
+          <HashtagSuggestionBar text={editContentText} onSelect={setEditContentText} textareaRef={editTextareaRef} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <button
               className="btn btn-secondary btn-sm"

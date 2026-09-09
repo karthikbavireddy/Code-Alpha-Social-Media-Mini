@@ -567,6 +567,9 @@ function closeEditPostModal() {
         modal.classList.remove('active');
         currentEditingPostId = null;
     }
+    if (typeof closeHashtagBar === 'function') {
+        closeHashtagBar();
+    }
 }
 
 async function saveEditedPost() {

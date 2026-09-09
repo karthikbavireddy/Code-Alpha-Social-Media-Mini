@@ -494,4 +494,33 @@ class ConnectSphereTests(TestCase):
         self.assertEqual(res_following.data['count'], 1)
         self.assertEqual(res_following.data['results'][0]['username'], self.user1.username)
 
+    # 32. Real-time hashtag suggestions API (A-to-Z & DB tags)
+    def test_32_hashtags_realtime_suggestions(self):
+        # 1. Test prefix query for 'co'
+        res_co = self.client.get('/api/hashtags/?q=co')
+        self.assertEqual(res_co.status_code, status.HTTP_200_OK)
+        tags_co = [item['tag'] for item in res_co.data]
+        self.assertTrue(any(t.startswith('co') for t in tags_co))
+        self.assertIn('coding', tags_co)
+
+        # 2. Test prefix query for 'ka' (as in user's image)
+        res_ka = self.client.get('/api/hashtags/?q=ka')
+        self.assertEqual(res_ka.status_code, status.HTTP_200_OK)
+        tags_ka = [item['tag'] for item in res_ka.data]
+        self.assertTrue(any(t.startswith('ka') for t in tags_ka))
+        self.assertIn('kashmir', tags_ka)
+
+        # 3. Test empty query returns trending tags
+        res_empty = self.client.get('/api/hashtags/')
+        self.assertEqual(res_empty.status_code, status.HTTP_200_OK)
+        self.assertGreater(len(res_empty.data), 0)
+
+        # 4. Test extraction of custom hashtags from newly created posts
+        Post.objects.create(author=self.user1, content="Exploring with #SpecialNebula today!")
+        res_custom = self.client.get('/api/hashtags/?q=specialneb')
+        self.assertEqual(res_custom.status_code, status.HTTP_200_OK)
+        tags_custom = [item['tag'] for item in res_custom.data]
+        self.assertIn('specialnebula', tags_custom)
+
+
 

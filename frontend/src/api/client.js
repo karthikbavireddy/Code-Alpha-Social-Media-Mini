@@ -138,8 +138,9 @@ export const api = {
   getUserFollowers: (username) => api.get(`/users/${encodeURIComponent(username)}/followers/`),
   getUserFollowing: (username) => api.get(`/users/${encodeURIComponent(username)}/following/`),
 
-  // Search
+  // Search & Hashtags
   searchUsers: (query) => api.get(`/search/?q=${encodeURIComponent(query || '')}`),
+  getHashtags: (query) => api.get(`/hashtags/?q=${encodeURIComponent(query || '')}`),
 
   // Direct Messaging
   getConversations: () => api.get('/conversations/'),

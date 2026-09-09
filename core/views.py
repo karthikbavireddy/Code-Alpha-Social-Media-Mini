@@ -986,6 +986,131 @@ def api_search(request):
     return Response(user_serializer.data, status=status.HTTP_200_OK)
 
 
+# Curated A-Z Hashtags covering all letters from A to Z
+POPULAR_ATOZ_HASHTAGS = [
+    # A
+    "action", "adventure", "ai", "amazing", "animation", "android", "anime", "art", "artist", "aesthetic", "architecture", "attitude",
+    # B
+    "backend", "beautiful", "beauty", "best", "blackandwhite", "blog", "blogger", "books", "brand", "business", "bts", "beach",
+    # C
+    "coding", "code", "coder", "community", "connectsphere", "coffee", "creative", "cute", "creator", "cloud", "challenge", "cybersecurity", "cars",
+    # D
+    "daily", "dance", "design", "developer", "dev", "digitalart", "drawing", "diy", "django", "data", "deeplearning", "destination",
+    # E
+    "earth", "education", "explore", "engineering", "entertainment", "environment", "entrepreneur", "experience", "events", "energy",
+    # F
+    "fashion", "fitness", "food", "foodie", "friends", "fun", "funny", "frontend", "future", "family", "focus", "flow", "film",
+    # G
+    "gaming", "gamer", "goals", "goodvibes", "gym", "gratitude", "graphicdesign", "growth", "global", "green", "github", "gymlife",
+    # H
+    "happy", "happiness", "health", "healthy", "holiday", "home", "humor", "html", "hackathon", "healing", "history", "hope",
+    # I
+    "india", "inspiration", "instagood", "instagram", "innovation", "ios", "iot", "ideas", "illustrator", "italy", "insight",
+    # J
+    "japan", "java", "javascript", "journey", "joy", "journal", "jobs", "justice", "jazz",
+    # K
+    "kashmir", "karnataka", "kawaii", "kerala", "kolkata", "kpop", "knowledge", "kindness", "kitchen", "kids", "king",
+    # L
+    "life", "lifestyle", "like", "love", "learning", "linux", "light", "luxury", "landscape", "live", "logic", "leaders",
+    # M
+    "music", "motivation", "morning", "machinelearning", "meme", "memes", "marketing", "mobile", "mindset", "minimalism", "movies",
+    # N
+    "nature", "naturephotography", "news", "night", "nodejs", "network", "nextjs", "newpost", "nostalgia", "nyc",
+    # O
+    "online", "outdoors", "openai", "opportunity", "opensource", "original", "outfit", "ocean", "organic", "optics",
+    # P
+    "photography", "photooftheday", "picoftheday", "python", "programming", "programmer", "peace", "portrait", "podcast", "positivity", "party",
+    # Q
+    "quotes", "quoteoftheday", "quick", "quality", "quiet", "quiz", "question", "queen",
+    # R
+    "react", "reactjs", "reels", "realtime", "reading", "research", "relax", "roadtrip", "running", "rest", "revolution",
+    # S
+    "socialmedia", "style", "sunshine", "sunset", "smile", "software", "success", "study", "sports", "spring", "summer", "space", "science", "skills",
+    # T
+    "tech", "technology", "travel", "trending", "today", "tips", "thoughts", "training", "throwback", "tiktok", "time", "team",
+    # U
+    "universe", "ui", "ux", "urban", "updates", "unity", "usa", "unique", "upgrade", "unwind",
+    # V
+    "vibes", "video", "viral", "view", "vintage", "visualart", "vacation", "vue", "vector", "victory",
+    # W
+    "webdev", "webdevelopment", "workout", "wellness", "world", "weekend", "work", "wildlife", "writing", "wallpaper", "webdesign",
+    # X
+    "xbox", "xcode", "xmas", "xiaomi", "xenon", "xplore",
+    # Y
+    "youtube", "youtuber", "yoga", "youth", "yesterday", "yummy", "young",
+    # Z
+    "zen", "zoom", "zone", "zero", "zest", "zeal"
+]
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_hashtags(request):
+    """
+    Real-time hashtag suggestion API.
+    Combines hashtags from active posts in database with comprehensive A-Z curated list,
+    filtering by prefix or substring, ordered by relevance and popularity.
+    """
+    from collections import Counter
+
+    raw_q = request.GET.get('q', '').strip()
+    clean_q = raw_q.lstrip('#').strip().lower()
+
+    # 1. Extract hashtags from recent posts in database
+    db_counts = Counter()
+    try:
+        recent_posts = Post.objects.values_list('content', flat=True).order_by('-created_at')[:200]
+        for content in recent_posts:
+            if '#' in content:
+                found = re.findall(r'#([a-zA-Z0-9_\u00C0-\u017F]+)', content)
+                for tag in found:
+                    db_counts[tag.lower()] += 1
+    except Exception as e:
+        logger.warning(f"Error querying hashtags from database: {e}")
+
+    # 2. Combine with A-Z catalog
+    all_tags = {}
+    for tag, count in db_counts.items():
+        all_tags[tag] = count + 10  # boost active database tags
+
+    for tag in POPULAR_ATOZ_HASHTAGS:
+        t_low = tag.lower()
+        if t_low not in all_tags:
+            all_tags[t_low] = 1
+
+    # 3. Filter by query
+    if not clean_q:
+        # Default top trending
+        top_tags = sorted(all_tags.keys(), key=lambda t: (-all_tags[t], t))[:20]
+    else:
+        prefix_matches = [t for t in all_tags if t.startswith(clean_q)]
+        contains_matches = [t for t in all_tags if not t.startswith(clean_q) and clean_q in t]
+
+        # Order prefix matches by count desc, then length asc, then alphabetical
+        prefix_matches.sort(key=lambda t: (-all_tags[t], len(t), t))
+        contains_matches.sort(key=lambda t: (-all_tags[t], len(t), t))
+
+        top_tags = (prefix_matches + contains_matches)[:20]
+
+        # If user typed a novel tag that isn't in catalog, append at end or use if no prefix matches
+        if clean_q and clean_q not in top_tags:
+            if not prefix_matches:
+                top_tags.insert(0, clean_q)
+            else:
+                top_tags.append(clean_q)
+
+    results = []
+    for t in top_tags[:16]:
+        results.append({
+            "tag": t,
+            "hashtag": f"#{t}",
+            "count": all_tags.get(t, 1)
+        })
+
+    return Response(results, status=status.HTTP_200_OK)
+
+
+
 def touch_user_activity(user):
     """
     Ensure the user's profile.last_seen is kept fresh with minimal DB overhead.

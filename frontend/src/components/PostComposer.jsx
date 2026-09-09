@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { Image, Send, X, Loader2, Crop } from 'lucide-react';
 import ImageCropModal from './ImageCropModal';
+import HashtagSuggestionBar from './HashtagSuggestionBar';
 
 export default function PostComposer({ onPostCreated }) {
   const { user, isAuthenticated, addToast, refreshUser } = useAuth();
@@ -12,6 +13,7 @@ export default function PostComposer({ onPostCreated }) {
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
 
   if (!isAuthenticated) return null;
 
@@ -91,6 +93,7 @@ export default function PostComposer({ onPostCreated }) {
         <div style={{ flex: 1 }}>
           <form onSubmit={handleSubmit}>
             <textarea
+              ref={textareaRef}
               className="input-field"
               placeholder="What's happening in your sphere?"
               value={content}
@@ -104,6 +107,8 @@ export default function PostComposer({ onPostCreated }) {
                 resize: 'none',
               }}
             />
+
+            <HashtagSuggestionBar text={content} onSelect={setContent} textareaRef={textareaRef} />
 
             {imagePreview && (
               <div

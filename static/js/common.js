@@ -562,7 +562,204 @@ async function handleMentionInput(target) {
     }, 120);
 }
 
-function setupGlobalMentionListener() {
+/* ==========================================================================
+   Real-Time Hashtag Autocomplete System (A to Z suggestions)
+   ========================================================================== */
+let _hashtagBarEl = null;
+let _hashtagTargetInput = null;
+let _hashtagMatchInfo = null;
+let _hashtagSuggestions = [];
+let _hashtagSelectedIndex = 0;
+let _hashtagDebounceTimer = null;
+const _hashtagCache = new Map();
+
+function getOrCreateHashtagBar() {
+    if (!_hashtagBarEl) {
+        _hashtagBarEl = document.createElement('div');
+        _hashtagBarEl.id = 'global-hashtag-suggestions';
+        _hashtagBarEl.className = 'hashtag-autocomplete-bar';
+        _hashtagBarEl.style.display = 'none';
+        document.body.appendChild(_hashtagBarEl);
+
+        // Prevent clicking inside bar from blurring the input
+        _hashtagBarEl.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+        });
+        _hashtagBarEl.addEventListener('touchstart', (e) => {
+            // allow native touch scrolling inside track
+        }, { passive: true });
+    }
+    return _hashtagBarEl;
+}
+
+function closeHashtagBar() {
+    if (_hashtagBarEl) {
+        _hashtagBarEl.style.display = 'none';
+    }
+    _hashtagTargetInput = null;
+    _hashtagMatchInfo = null;
+    _hashtagSuggestions = [];
+    _hashtagSelectedIndex = 0;
+}
+
+function insertSelectedHashtag(tag) {
+    if (!_hashtagTargetInput || !_hashtagMatchInfo) return;
+    const input = _hashtagTargetInput;
+    const { startPos, query } = _hashtagMatchInfo;
+    const original = input.value;
+    const endPos = startPos + query.length + 1; // +1 for '#'
+
+    const before = original.slice(0, startPos);
+    const after = original.slice(endPos);
+    const cleanTag = tag.replace(/^#/, '').trim();
+    const insertion = `#${cleanTag} `;
+
+    input.value = before + insertion + after;
+    const newCursor = before.length + insertion.length;
+    input.focus();
+    input.setSelectionRange(newCursor, newCursor);
+
+    // Dispatch input event so character counters, previewers, and auto-resize react
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    closeHashtagBar();
+}
+
+function renderHashtagBarItems() {
+    if (!_hashtagBarEl || _hashtagSuggestions.length === 0) {
+        closeHashtagBar();
+        return;
+    }
+
+    const chipsHtml = _hashtagSuggestions.map((item, idx) => {
+        const isSelected = idx === _hashtagSelectedIndex;
+        const displayTag = (item.tag || '').toUpperCase();
+        return `
+            <button type="button" 
+                class="hashtag-chip ${isSelected ? 'active' : ''}" 
+                data-index="${idx}" 
+                title="#${item.tag}${item.count > 1 ? ` (${item.count} posts)` : ''}"
+                onclick="insertSelectedHashtag('${escapeHtml(item.tag)}'); event.preventDefault(); event.stopPropagation();">
+                <span class="hashtag-hash">#</span><span class="hashtag-name">${escapeHtml(displayTag)}</span>
+            </button>
+        `;
+    }).join('');
+
+    _hashtagBarEl.innerHTML = `
+        <div class="hashtag-bar-inner">
+            <div class="hashtag-bar-header">
+                <span class="hashtag-bar-title">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+                    Suggested Hashtags
+                </span>
+                <span class="hashtag-bar-hint">Tap or click to add</span>
+            </div>
+            <div class="hashtag-chips-track">
+                ${chipsHtml}
+            </div>
+        </div>
+    `;
+
+    _hashtagBarEl.style.display = 'block';
+    positionHashtagBar();
+
+    // Auto-scroll selected chip into view in track
+    const activeChip = _hashtagBarEl.querySelector('.hashtag-chip.active');
+    if (activeChip) {
+        activeChip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+}
+
+function positionHashtagBar() {
+    if (!_hashtagBarEl || !_hashtagTargetInput) return;
+    const rect = _hashtagTargetInput.getBoundingClientRect();
+    const isMobile = window.innerWidth <= 768;
+    const barWidth = isMobile
+        ? Math.min(window.innerWidth - 20, Math.max(300, rect.width || window.innerWidth - 20))
+        : Math.min(window.innerWidth - 24, Math.max(340, rect.width));
+
+    let left = rect.left;
+    if (left + barWidth > window.innerWidth - 10) {
+        left = window.innerWidth - barWidth - 10;
+    }
+    if (left < 10) left = 10;
+
+    const barHeight = 82;
+    const vpHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const vpTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
+
+    // Check if space below input or above
+    let top;
+    if (rect.bottom + barHeight + 8 > vpTop + vpHeight && rect.top - barHeight > vpTop + 8) {
+        top = Math.max(vpTop + 8, rect.top - barHeight - 6);
+    } else {
+        top = Math.min(vpTop + vpHeight - barHeight - 8, rect.bottom + 6);
+    }
+
+    _hashtagBarEl.style.position = 'fixed';
+    _hashtagBarEl.style.left = `${Math.round(left)}px`;
+    _hashtagBarEl.style.top = `${Math.round(top)}px`;
+    _hashtagBarEl.style.width = `${Math.round(barWidth)}px`;
+}
+
+async function handleHashtagInput(target) {
+    const val = target.value || '';
+    const caret = target.selectionStart;
+    if (typeof caret !== 'number') {
+        closeHashtagBar();
+        return;
+    }
+
+    const textBeforeCaret = val.slice(0, caret);
+    // Matches #query at end of string or after whitespace / start of line
+    const match = textBeforeCaret.match(/(^|\s)#([a-zA-Z0-9_\u00C0-\u017F]*)$/);
+
+    if (!match) {
+        closeHashtagBar();
+        return;
+    }
+
+    // If mention dropdown is currently visible, suppress hashtags
+    if (_mentionDropdownEl && _mentionDropdownEl.style.display !== 'none') {
+        closeHashtagBar();
+        return;
+    }
+
+    const query = match[2];
+    const matchLength = match[0].length;
+    const leadingSpace = match[1];
+    const startPos = caret - matchLength + leadingSpace.length;
+
+    _hashtagTargetInput = target;
+    _hashtagMatchInfo = { startPos, query };
+    getOrCreateHashtagBar();
+
+    clearTimeout(_hashtagDebounceTimer);
+    _hashtagDebounceTimer = setTimeout(async () => {
+        try {
+            let tags = [];
+            const cacheKey = query.toLowerCase();
+            if (_hashtagCache.has(cacheKey)) {
+                tags = _hashtagCache.get(cacheKey);
+            } else {
+                const res = await apiRequest(`/api/hashtags/?q=${encodeURIComponent(query)}`);
+                tags = Array.isArray(res) ? res : [];
+                _hashtagCache.set(cacheKey, tags);
+            }
+
+            if (tags && tags.length > 0) {
+                _hashtagSuggestions = tags;
+                _hashtagSelectedIndex = 0;
+                renderHashtagBarItems();
+            } else {
+                closeHashtagBar();
+            }
+        } catch (err) {
+            closeHashtagBar();
+        }
+    }, 60);
+}
+
+function setupGlobalAutocompleteListeners() {
     // Listen for input on text inputs & textareas
     document.addEventListener('input', (e) => {
         const target = e.target;
@@ -571,49 +768,95 @@ function setupGlobalMentionListener() {
         const isTextInput = tag === 'TEXTAREA' || (tag === 'INPUT' && (target.type === 'text' || !target.type));
         if (isTextInput) {
             handleMentionInput(target);
+            handleHashtagInput(target);
         }
     });
 
-    // Keyboard navigation when mention dropdown is open
+    // Keyboard navigation when dropdowns are open
     document.addEventListener('keydown', (e) => {
-        if (!_mentionDropdownEl || _mentionDropdownEl.style.display === 'none' || _mentionSuggestions.length === 0) {
-            return;
+        // 1. Hashtag bar keyboard navigation
+        if (_hashtagBarEl && _hashtagBarEl.style.display !== 'none' && _hashtagSuggestions.length > 0) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                _hashtagSelectedIndex = (_hashtagSelectedIndex + 1) % _hashtagSuggestions.length;
+                renderHashtagBarItems();
+                return;
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                _hashtagSelectedIndex = (_hashtagSelectedIndex - 1 + _hashtagSuggestions.length) % _hashtagSuggestions.length;
+                renderHashtagBarItems();
+                return;
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+                const selected = _hashtagSuggestions[_hashtagSelectedIndex];
+                if (selected) {
+                    insertSelectedHashtag(selected.tag);
+                }
+                return;
+            } else if (e.key === 'Escape') {
+                closeHashtagBar();
+                return;
+            }
         }
 
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            _mentionSelectedIndex = (_mentionSelectedIndex + 1) % _mentionSuggestions.length;
-            renderMentionDropdownItems();
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            _mentionSelectedIndex = (_mentionSelectedIndex - 1 + _mentionSuggestions.length) % _mentionSuggestions.length;
-            renderMentionDropdownItems();
-        } else if (e.key === 'Enter' || e.key === 'Tab') {
-            e.preventDefault();
-            e.stopPropagation();
-            const selected = _mentionSuggestions[_mentionSelectedIndex];
-            if (selected) {
-                insertSelectedMention(selected.username);
+        // 2. Mention dropdown keyboard navigation
+        if (_mentionDropdownEl && _mentionDropdownEl.style.display !== 'none' && _mentionSuggestions.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                _mentionSelectedIndex = (_mentionSelectedIndex + 1) % _mentionSuggestions.length;
+                renderMentionDropdownItems();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                _mentionSelectedIndex = (_mentionSelectedIndex - 1 + _mentionSuggestions.length) % _mentionSuggestions.length;
+                renderMentionDropdownItems();
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                e.stopPropagation();
+                const selected = _mentionSuggestions[_mentionSelectedIndex];
+                if (selected) {
+                    insertSelectedMention(selected.username);
+                }
+            } else if (e.key === 'Escape') {
+                closeMentionDropdown();
             }
-        } else if (e.key === 'Escape') {
-            closeMentionDropdown();
         }
     }, true);
 
     // Close on click outside
     document.addEventListener('click', (e) => {
+        if (_hashtagBarEl && _hashtagBarEl.style.display !== 'none') {
+            if (!_hashtagBarEl.contains(e.target) && e.target !== _hashtagTargetInput) {
+                closeHashtagBar();
+            }
+        }
         if (_mentionDropdownEl && _mentionDropdownEl.style.display !== 'none') {
             if (!_mentionDropdownEl.contains(e.target) && e.target !== _mentionTargetInput) {
                 closeMentionDropdown();
             }
         }
     });
+
+    // Reposition on resize/scroll
+    window.addEventListener('resize', () => {
+        if (_hashtagBarEl && _hashtagBarEl.style.display !== 'none') {
+            positionHashtagBar();
+        }
+        if (_mentionDropdownEl && _mentionDropdownEl.style.display !== 'none') {
+            positionMentionDropdown();
+        }
+    });
+    window.addEventListener('scroll', () => {
+        if (_hashtagBarEl && _hashtagBarEl.style.display !== 'none') {
+            positionHashtagBar();
+        }
+    }, { passive: true });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     updateUnreadMessagesBadges();
     updateNotificationsBadges(null, false);
-    setupGlobalMentionListener();
+    setupGlobalAutocompleteListeners();
 
     // Close notifications dropdown when clicking outside
     document.addEventListener('click', (e) => {
