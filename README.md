@@ -1,3 +1,5 @@
+Deployed URL https://connectsphere-ntk2.onrender.com
+
 # ConnectSphere — Mini Social Media Platform
 
 ConnectSphere is a full-stack, responsive mini social media web platform engineered with **Python 3**, **Django 6**, **Django REST Framework**, and **Vanilla HTML5, CSS3, and JavaScript**.
